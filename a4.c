@@ -31,8 +31,10 @@ struct jogador {
 	float maxFrame;
 	int direcao;
 	int side;
+	int life;
     struct joystick *controle;
     ALLEGRO_BITMAP *lutador;
+
 };
 
 
@@ -62,6 +64,7 @@ struct jogador *criaJogador (ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int
 	player->lutador = nome;	
 	player->maxFrame = 4;
 	player->side = 100;
+	player->life = 600;
 	player->controle = joystick_create();
 	return player;
 }
@@ -72,6 +75,11 @@ int colisao (struct jogador *p1, struct jogador *p2) {
 	if (p1->x_display+p1->side > p2->x_display && p1->x_display< p2->x_display + p2->side) return 1;
 	else return 0;
 }
+int colisaoGolpe (struct jogador *p1, struct jogador *p2) {
+	if (!p1 || !p2) return 0;
+	if (p1->x_display+30+p1->side > p2->x_display && p1->x_display < p2->x_display + 30 + p2->side) return 1;
+	else return 0;
+}
 
 void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, unsigned short max_x, unsigned short max_y){							//Implementação da função "jogadorMov" (-1)
 
@@ -79,8 +87,7 @@ void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, u
 		if ((element->x_display - steps*STEP) + element->side/2 >= 0) {
 			element->x_display = element->x_display - steps*STEP;  				//Verifica se a movimentação para a esquerda é desejada e possível; se sim, efetiva a mesma
 			element->currentFrame = element->currentFrame * 3;
-			element->maxFrame = 5;
-			
+			element->maxFrame = 5;			
 		}
 	}
 	else if (trajectory == 1){ 
@@ -97,26 +104,22 @@ void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, u
 			element->maxFrame = 7;
 			element->currentFrame = element->currentFrame * 8;
 			//element->y_display = element->x_display - 5;
-		}
-			
+		}			
 	}
 	else if (trajectory == 3){ 
 		if ((element->y_display + steps*STEP) + element->side/2 <= max_y ) {
 			//element->y_display = element->y_display + steps*STEP; //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
 			element->currentFrame = element->currentFrame * 9;
-			element->maxFrame = 1;
-			
-			
+			element->maxFrame = 1;			
 		}
 			
 	}	
 	else if (trajectory == 4){ 
-		if ((element->y_display + steps*STEP) ) {
+		if (element->y_display + steps*STEP)  {
 			//element->y_display = element->y_display + steps*STEP; //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
 			element->currentFrame = element->currentFrame * 2;
 			element->maxFrame = 3;			
-		}
-			
+		}			
 	}	
 	else if (trajectory == 5){ 
 		if ((element->y_display + steps*STEP) ) {
@@ -142,59 +145,73 @@ void joystick_push(struct joystick *element){ element->push = element->push ^ 1;
 void joystick_kick(struct joystick *element){ element->kick = element->kick ^ 1;}
 
 
-void update_position(struct jogador *player1, struct jogador *player2){																																				//Função de atualização das posições dos quadrados conforme os comandos do controle (!)
+int update_position(struct jogador *player1, struct jogador *player2){																																				//Função de atualização das posições dos quadrados conforme os comandos do controle (!)
 	
 	if (player1->controle->left){																																										//Se o botão de movimentação para esquerda do controle do primeiro jogador está ativado... (!)
-		jogadorMov(player1, 1, 0, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a esquerda (!)
+		jogadorMov(player1, 1, 0, X_SCREEN, Y_SCREEN);																																			//Move o quadrado do primeiro jogador para a esquerda (!)
 		if (colisao(player1, player2)) jogadorMov(player1, -1, 0, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
 	if (player1->controle->right){																																										//Se o botão de movimentação para direita do controle do primeir ojogador está ativado... (!)
 		jogadorMov(player1, 1, 1, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a direta (!)
 		if (colisao(player1, player2)) jogadorMov(player1, -1, 1, X_SCREEN, Y_SCREEN);			 																										//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
 	if (player1->controle->up) {																																										//Se o botão de movimentação para cima do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player1, 1, 2, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para cima (!)
 		if (colisao(player1, player2)) jogadorMov(player1, -1, 2, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
 	if (player1->controle->down){																																										//Se o botão de movimentação para baixo do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player1, 1, 3, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a baixo (!)
 		if (colisao(player1, player2)) jogadorMov(player1, -1, 3, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
     if (player1->controle->push){																																										//Se o botão de movimentação para baixo do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player1, 1, 4, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a baixo (!)
-		if (colisao(player1, player2)) jogadorMov(player1, -1, 4, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		if (colisaoGolpe(player1, player2)) return 2;																					//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)		
+		else return 0;
+		
 	}
     if (player1->controle->kick){																																										//Se o botão de movimentação para baixo do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player1, 1, 5, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a baixo (!)
-		if (colisao(player1, player2)) jogadorMov(player1, -1, 5, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		if (colisaoGolpe(player1, player2)) return 2;
+		else return 0;
 	}
 
 	if (player2->controle->left){																																										//Se o botão de movimentação para esquerda do controle do segundo jogador está ativado... (!)
 		jogadorMov(player2, 1, 0, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do segundo jogador para a direita (!)
 		if (colisao(player1, player2)) jogadorMov(player2, -1, 0, X_SCREEN, Y_SCREEN);	
+		//return 0;
 	}
 	
 	if (player2->controle->right){ 																																										//Se o botão de movimentação para direita do controle do segundo jogador está ativado... (!)
 		jogadorMov(player2, 1, 1, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do segundo jogador para a direita (!)
 		if (colisao(player1, player2)) jogadorMov(player2, -1, 1, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
 	
 	if (player2->controle->up){																																											//Se o botão de movimentação para cima do controle do segundo jogador está ativado... (!)
 		jogadorMov(player2, 1, 2, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do segundo jogador para a cima (!)
 		if (colisao(player1, player2)) jogadorMov(player2, -1, 2, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)			
+		//return 0;
 	}
 	if (player2->controle->down){																																										//Se o botão de movimentação para baixo do controle do segundo jogador está ativado... (!)
 		jogadorMov(player2, 1, 3, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do segundo jogador para a baixo (!)
 		if (colisao(player1, player2)) jogadorMov(player2, -1, 3, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		//return 0;
 	}
     if (player2->controle->push){																																										//Se o botão de movimentação para baixo do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player2, 1, 4, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a baixo (!)
-		if (colisao(player1, player2)) jogadorMov(player2, -1, 4, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		if (colisaoGolpe(player1, player2)) return 1;																								//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		else return 0;
 	}
     if (player2->controle->kick){																																										//Se o botão de movimentação para baixo do controle do primeiro jogador está ativado... (!)
 		jogadorMov(player2, 1, 5, X_SCREEN, Y_SCREEN);																																				//Move o quadrado do primeiro jogador para a baixo (!)
-		if (colisao(player1, player2)) jogadorMov(player2, -1, 5, X_SCREEN, Y_SCREEN);																											//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		if (colisaoGolpe(player1, player2)) return 1;																										//Se o movimento causou uma colisão entre quadrados, desfaça o mesmo (!)
+		else return 0;
 	}
+	return 0;
 }
 
 void resetaPlayers () {
@@ -274,7 +291,7 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
 }
 
 
-int main (){
+int main () {
 
     al_init();
     al_init_font_addon();
@@ -285,6 +302,8 @@ int main (){
 
 	char personagem;
 	float frame1 = 0.f, frame2 = 0.f;
+	int verificaVida;
+	int gameIniciado;
 	struct jogador* player1;
     struct jogador* player2;
 
@@ -314,11 +333,11 @@ int main (){
     personagem = SelecionaPersonagem (font); 
 	if (personagem == 'R' || personagem == 'r')   {
 		player1 = criaJogador (ryu, 70, 80, 200, 420, 1000, 1000, 80);
-		player2 = criaJogador (kenEsq, 70, 80, 400, 420, 1000, 1000, 80);
+		player2 = criaJogador (kenEsq, 70, 80, 800, 420, 1000, 1000, 80);
 	}
 	else {
 		player1 = criaJogador (ken, 70, 80, 200, 420, 1000, 1000, 80);
-		player2 = criaJogador (ryuEsq, 70 ,80, 400, 420, 1000, 1000, 80);
+		player2 = criaJogador (ryuEsq, 70 ,80, 800, 420, 1000, 1000, 80);
 	}
 	//al_clear_to_color(al_map_rgb(255,255,255));
     ALLEGRO_EVENT event;
@@ -326,24 +345,43 @@ int main (){
     while (1) {
 		al_wait_for_event(event_queue, &event);	
 		if (event.type == 30){
-			update_position(player1, player2);	
-																																								//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)
+			verificaVida = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)
+			if (verificaVida == 1) player1->life -= 5;
+			else if (verificaVida == 2) player2->life -= 5;
+
 			frame1 += 0.3f;
 			frame2 += 0.3f;
 			
 			if( frame1 > player1->maxFrame){
-				frame1 -= player1->maxFrame;				
-			}
+				frame1 -= player1->maxFrame;	
+			}			
+
 			if( frame2 > player2->maxFrame){
 				frame2 -= player2->maxFrame;				
 			}
 
 			al_clear_to_color(al_map_rgb(0,0,0));
-			al_draw_bitmap(bg, 0, 0, 0);                
+			al_draw_bitmap(bg, 0, 0, 0);   			             
 			al_draw_scaled_bitmap(player1->lutador, player1->x_sprite * (int)frame1, player1->currentFrame, player1->x_sprite , player1->y_sprite, player1->x_display, player1->y_display, 250, 250, 0);                     			
 			al_draw_scaled_bitmap(player2->lutador, player2->x_sprite * (int)frame2, player2->currentFrame, player2->x_sprite , player2->y_sprite, player2->x_display, player2->y_display, 250, 250, 0);                     			
+
+			ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
+			al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 255, 255));
+			al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
+			al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 255, 255));
+			al_draw_filled_rectangle (670, 10, 670 + player2->life, 60, red);
+
+			al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
+			al_draw_text(font, al_map_rgb(0,0,0), 1175, 20, 0, "player2");
+
+			al_draw_filled_circle(580, 80, 10, al_map_rgb(0, 0, 0));
+			al_draw_filled_circle(600, 80, 10, al_map_rgb(0, 0, 0));
+
+			al_draw_filled_circle(680, 80, 10, al_map_rgb(0, 0, 0));
+			al_draw_filled_circle(700, 80, 10, al_map_rgb(0, 0, 0));
 			al_flip_display();																																										//Insere as modificações realizadas nos buffers de tela
 		}
+		else if (player1->life <= 0 || player2->life <= 0) return 0;
 		else if ((event.type == 10) || (event.type == 12)){																																				//Verifica se o evento é de botão do teclado abaixado ou levantado (!)
 			if (event.keyboard.keycode == ALLEGRO_KEY_A) joystick_left(player1->controle);																															//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à esquerda) (!)
 			else if (event.keyboard.keycode == 4) joystick_right(player1->controle);																													//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à direita) (!)
@@ -372,4 +410,6 @@ int main (){
 		player2->x_sprite = 70;
 		player2->y_display = 420;
     }
+
+	return 0;
 }
