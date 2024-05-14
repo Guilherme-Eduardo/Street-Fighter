@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -10,6 +11,7 @@
 #define X_SCREEN 1280
 #define Y_SCREEN 720	
 #define MAX_FRAME 4
+#define ROUNDS 3
 
 struct joystick {
     unsigned char right;
@@ -32,6 +34,7 @@ struct jogador {
 	int direcao;
 	int side;
 	int life;
+	int rounds;
     struct joystick *controle;
     ALLEGRO_BITMAP *lutador;
 
@@ -65,6 +68,7 @@ struct jogador *criaJogador (ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int
 	player->maxFrame = 4;
 	player->side = 100;
 	player->life = 600;
+	player->rounds = 0;
 	player->controle = joystick_create();
 	return player;
 }
@@ -77,7 +81,7 @@ int colisao (struct jogador *p1, struct jogador *p2) {
 }
 int colisaoGolpe (struct jogador *p1, struct jogador *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display+30+p1->side > p2->x_display && p1->x_display < p2->x_display + 30 + p2->side) return 1;
+	if (p1->x_display+50+p1->side > p2->x_display && p1->x_display < p2->x_display + 50 + p2->side) return 1;	
 	else return 0;
 }
 
@@ -214,11 +218,6 @@ int update_position(struct jogador *player1, struct jogador *player2){										
 	return 0;
 }
 
-void resetaPlayers () {
-	return;
-}
-
-
 char SelecionaPersonagem (ALLEGRO_FONT* font) {
     char letra = '\0';
     al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -252,7 +251,6 @@ char SelecionaPersonagem (ALLEGRO_FONT* font) {
     al_clear_to_color(al_map_rgb(0, 0, 0));
 	return letra;
 }
-
 
 
 void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo) {
@@ -291,6 +289,92 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
 }
 
 
+void resetaPlayers (struct jogador *player1, struct jogador *player2) {
+	player1->life = 600;
+	player2->life = 600;
+	player1->x_display = 200;
+	player2->x_display = 800;
+}
+
+int temVencedorPartida (struct jogador *player1, struct jogador *player2) {
+	if (player1->rounds >=2 || player2->rounds >= 2) return 1;
+	else return 0;
+}
+
+int temVencedorRound (struct jogador *player1, struct jogador *player2) {
+	if (player1->life <= 0 || player2->life <= 0) return 1;
+	else return 0;
+}
+
+/*void revanche (player1, player2) {
+
+
+}
+*/
+
+void alteraRounds(struct jogador *player1, struct jogador *player2) {
+    if (player1->life <= 0) player2->rounds++;
+    else if (player2->life <= 0) player1->rounds++;
+}
+
+void retiraVida (struct jogador *player1, struct jogador *player2, int jogador) {
+	if (jogador == 1) player1->life -= 5;
+	else if (jogador == 2) player2->life -= 5;
+}
+
+void imprimeCenario (struct jogador *player1, struct jogador *player2, ALLEGRO_BITMAP *bg, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
+	al_clear_to_color(al_map_rgb(0,0,0));
+	al_draw_bitmap(bg, 0, 0, 0);
+	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
+	al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 255, 255));
+	al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
+	al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 255, 255));
+	al_draw_filled_rectangle (670, 10, 670 + player2->life, 60, red);
+
+	al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
+	al_draw_text(font, al_map_rgb(0,0,0), 1175, 20, 0, "player2");
+
+	al_draw_filled_circle(580, 80, 10, al_map_rgb(0, 0, 0));
+	al_draw_filled_circle(600, 80, 10, al_map_rgb(0, 0, 0));
+
+	al_draw_filled_circle(680, 80, 10, al_map_rgb(0, 0, 0));
+	al_draw_filled_circle(700, 80, 10, al_map_rgb(0, 0, 0));	
+
+	if (player1->rounds == 1) {
+		al_draw_filled_circle(580, 80, 10, al_map_rgb(255, 255, 0));
+	}
+	if (player2->rounds == 1) {
+		al_draw_filled_circle(680, 80, 10, al_map_rgb(255, 255, 0));
+	}
+
+	if (player1->rounds + player2->rounds == 0) {
+		al_draw_scaled_bitmap (rounds[0],0,0,372,118,597,100,100,50,0);
+	}
+	else if (player1->rounds + player2->rounds == 1)
+		al_draw_scaled_bitmap (rounds[1],0,0,372,118,597,100,100,50,0);
+
+	else if (player1->rounds + player2->rounds == 2)
+		al_draw_scaled_bitmap (rounds[2],0,0,372,118,597,100,100,50,0);
+	
+}
+
+void imprimePersonagens(struct jogador *player1, struct jogador *player2, float *frame1, float *frame2) {
+    *frame1 += 0.3f;
+    *frame2 += 0.3f;
+
+    if (*frame1 > player1->maxFrame) {
+        *frame1 -= player1->maxFrame;
+    }
+
+    if (*frame2 > player2->maxFrame) {
+        *frame2 -= player2->maxFrame;
+    }
+
+    al_draw_scaled_bitmap(player1->lutador, player1->x_sprite * (int)(*frame1), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 250, 250, 0);
+    al_draw_scaled_bitmap(player2->lutador, player2->x_sprite * (int)(*frame2), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 250, 250, 0);    
+}
+
+
 int main () {
 
     al_init();
@@ -302,8 +386,11 @@ int main () {
 
 	char personagem;
 	float frame1 = 0.f, frame2 = 0.f;
-	int verificaVida;
-	int gameIniciado;
+	int vida;
+	int gameIniciado = 0;
+	int *numRounds = 0;
+	
+	
 	struct jogador* player1;
     struct jogador* player2;
 
@@ -316,8 +403,13 @@ int main () {
 	ALLEGRO_BITMAP * kenEsq = al_load_bitmap("./KenEsq.png");
     ALLEGRO_BITMAP * ryuEsq = al_load_bitmap ("./RyuEsq.png");
     ALLEGRO_BITMAP * bg = al_load_bitmap("./cenario.jpg");
-    ALLEGRO_BITMAP *logo = al_load_bitmap("StreetFighterArcTitle2.png");
+    ALLEGRO_BITMAP * logo = al_load_bitmap("StreetFighterArcTitle2.png");
     ALLEGRO_BITMAP * menuBitmap = al_load_bitmap("./menuNovo.jpg");
+	ALLEGRO_BITMAP * rounds[ROUNDS];
+	rounds[0] = al_load_bitmap("./rounds1.png");
+	rounds[1] = al_load_bitmap("./rounds2.png");
+	rounds[2] = al_load_bitmap("./rounds3.png");
+
 	ALLEGRO_KEYBOARD_STATE keystate;
     ALLEGRO_EVENT_QUEUE * event_queue = al_create_event_queue();
 
@@ -329,70 +421,50 @@ int main () {
 	al_set_window_position(display, 200, 200);
     al_set_window_title(display, "Street Fighter!");
 
-    menu (font, menuBitmap, logo);
-    personagem = SelecionaPersonagem (font); 
-	if (personagem == 'R' || personagem == 'r')   {
-		player1 = criaJogador (ryu, 70, 80, 200, 420, 1000, 1000, 80);
-		player2 = criaJogador (kenEsq, 70, 80, 800, 420, 1000, 1000, 80);
-	}
-	else {
-		player1 = criaJogador (ken, 70, 80, 200, 420, 1000, 1000, 80);
-		player2 = criaJogador (ryuEsq, 70 ,80, 800, 420, 1000, 1000, 80);
-	}
-	//al_clear_to_color(al_map_rgb(255,255,255));
     ALLEGRO_EVENT event;
 	al_start_timer(timer);	
     while (1) {
 		al_wait_for_event(event_queue, &event);	
-		if (event.type == 30){
-			verificaVida = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)
-			if (verificaVida == 1) player1->life -= 5;
-			else if (verificaVida == 2) player2->life -= 5;
 
-			frame1 += 0.3f;
-			frame2 += 0.3f;
-			
-			if( frame1 > player1->maxFrame){
-				frame1 -= player1->maxFrame;	
-			}			
-
-			if( frame2 > player2->maxFrame){
-				frame2 -= player2->maxFrame;				
+		if (!gameIniciado) {
+			menu (font, menuBitmap, logo);
+			personagem = SelecionaPersonagem (font); 
+			if (personagem == 'R' || personagem == 'r')   {
+				player1 = criaJogador (ryu, 70, 80, 200, 420, 1000, 1000, 80);
+				player2 = criaJogador (kenEsq, 70, 80, 800, 420, 1000, 1000, 80);
 			}
+			else {
+				player1 = criaJogador (ken, 70, 80, 200, 420, 1000, 1000, 80);
+				player2 = criaJogador (ryuEsq, 70 ,80, 800, 420, 1000, 1000, 80);
+			}
+			gameIniciado = 1;
+		}		
 
+		if (event.type == 30) {
+			vida = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)			
+			retiraVida (player1, player2, vida);
 			al_clear_to_color(al_map_rgb(0,0,0));
-			al_draw_bitmap(bg, 0, 0, 0);   			             
-			al_draw_scaled_bitmap(player1->lutador, player1->x_sprite * (int)frame1, player1->currentFrame, player1->x_sprite , player1->y_sprite, player1->x_display, player1->y_display, 250, 250, 0);                     			
-			al_draw_scaled_bitmap(player2->lutador, player2->x_sprite * (int)frame2, player2->currentFrame, player2->x_sprite , player2->y_sprite, player2->x_display, player2->y_display, 250, 250, 0);                     			
-
-			ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
-			al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 255, 255));
-			al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
-			al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 255, 255));
-			al_draw_filled_rectangle (670, 10, 670 + player2->life, 60, red);
-
-			al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
-			al_draw_text(font, al_map_rgb(0,0,0), 1175, 20, 0, "player2");
-
-			al_draw_filled_circle(580, 80, 10, al_map_rgb(0, 0, 0));
-			al_draw_filled_circle(600, 80, 10, al_map_rgb(0, 0, 0));
-
-			al_draw_filled_circle(680, 80, 10, al_map_rgb(0, 0, 0));
-			al_draw_filled_circle(700, 80, 10, al_map_rgb(0, 0, 0));
-			al_flip_display();																																										//Insere as modificações realizadas nos buffers de tela
+			imprimeCenario(player1, player2, bg, font, rounds);
+			imprimePersonagens (player1, player2, &frame1, &frame2);					
+		}		
+		if (temVencedorRound(player1, player2)) {
+			alteraRounds (player1, player2);
+			resetaPlayers (player1, player2);
+			al_rest (1.5);
 		}
-		else if (player1->life <= 0 || player2->life <= 0) return 0;
+		if (temVencedorPartida (player1, player2)) break;
+
 		else if ((event.type == 10) || (event.type == 12)){																																				//Verifica se o evento é de botão do teclado abaixado ou levantado (!)
 			if (event.keyboard.keycode == ALLEGRO_KEY_A) joystick_left(player1->controle);																															//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == 4) joystick_right(player1->controle);																													//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à direita) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_D) joystick_right(player1->controle);																													//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à direita) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_W) joystick_up(player1->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == 19) joystick_down(player1->controle);	
+			else if (event.keyboard.keycode == ALLEGRO_KEY_S) joystick_down(player1->controle);	
 			else if (event.keyboard.keycode == ALLEGRO_KEY_X) joystick_push(player1->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_C) joystick_kick(player1->controle);																												//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == 82) joystick_left(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == 83) joystick_right(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à direita) (!)
-			else if (event.keyboard.keycode == 84) joystick_up(player2->controle);																														//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == 85) joystick_down(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT) joystick_left(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à esquerda) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à direita) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_UP) joystick_up(player2->controle);																														//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN) joystick_down(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_M) joystick_push(player2->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_N) joystick_kick(player2->controle);
 		}
@@ -409,6 +481,7 @@ int main () {
 		player2->currentFrame = 80;
 		player2->x_sprite = 70;
 		player2->y_display = 420;
+		al_flip_display();
     }
 
 	return 0;
