@@ -13,10 +13,20 @@
 #define MAX_FRAME 4
 #define ROUNDS 3
 #define GRAVITY 5.0
-#define JUMP_STRENGTH -200
+#define JUMP_STRENGTH -250
 #define GROUND_LEVEL 420
+#define CLOCK 90
+#define LEFT 0
+#define RIGHT 1
+#define UP 2
+#define DOWN 3
+#define PUSH 4
+#define KICK 5
 
-struct joystick {
+/***********************************************************************************************/
+
+/*Controle do jogador*/
+struct joystick_t {
     unsigned char right;
     unsigned char left;
     unsigned char up;
@@ -25,7 +35,8 @@ struct joystick {
     unsigned char kick;
 };
 
-struct jogador {
+/*Personagem do jogador*/
+struct character_t {
     float x_sprite;
     float y_sprite;
     float x_display;
@@ -33,21 +44,23 @@ struct jogador {
     float maxX;
     float maxY;
     float currentFrame;
-    float maxFrame;
-    int direcao;
+    float maxFrame;    
     int side;
     int life;
-    int rounds;
+    int rounds_won;
     float vel_y;
 	float vel_x;
-    int jump;
-	int squat;
-    struct joystick *controle;
-    ALLEGRO_BITMAP *lutador;
+    int jump;	
+    float frame;
+    int direction;
+    struct joystick_t *joystick;
+    ALLEGRO_BITMAP *fighter;
 };
 
-struct joystick* joystick_create() {
-    struct joystick *element = (struct joystick*) malloc (sizeof(struct joystick));
+/* Cria a estrutura responsavel por receber os comandos do personagem */
+struct joystick_t *joystick_create () {
+    struct joystick_t *element = (struct joystick_t*) malloc (sizeof(struct joystick_t));
+    if (!element) exit(1);
     element->right = 0;
     element->left = 0;
     element->up = 0;
@@ -56,9 +69,11 @@ struct joystick* joystick_create() {
     element->kick = 0;
     return element;
 }
+/* Funcao responsavel pela criacao do personagem e com as suas caracteristicas */
+struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int yS, unsigned int xD,
+                                    unsigned int yD, unsigned int maxX, unsigned int maxY, unsigned int currentFrame, int direction) {
 
-struct jogador* criaJogador(ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int yS, unsigned int xD, unsigned int yD, unsigned int maxX, unsigned int maxY, unsigned int currentFrame) {
-    struct jogador *player = (struct jogador*) malloc (sizeof(struct jogador));
+    struct character_t *player = (struct character_t*) malloc (sizeof(struct character_t));
     if (!player) exit(1);
     player->x_sprite = xS;
     player->y_sprite = yS;
@@ -67,88 +82,112 @@ struct jogador* criaJogador(ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int 
     player->maxX = maxX;
     player->maxY = maxY;
     player->currentFrame = currentFrame;
-    player->lutador = nome;    
+    player->fighter = nome;    
     player->maxFrame = 4;
     player->side = 100;
     player->life = 600;
-    player->rounds = 0;
+    player->rounds_won = 0;
     player->vel_y = 0;
-    player->jump = 0;
-	player->squat = 0;
-    player->controle = joystick_create();
+    player->jump = 0;	
+    player->frame = 0.f;
+    player->joystick = joystick_create();
+    player->direction = direction;
     return player;
 }
 
-void apply_gravity(struct jogador *player) {
+void joystick_destroy (struct joystick_t *element){ free(element);}							//Implementação da função "joystick_destroy"; libera a memória do elemento na heap (!)]
+
+void destroy_character (struct character_t *player) {
+    if (!player) return;
+
+    al_destroy_bitmap (player->fighter);
+    joystick_destroy (player->joystick);
+    free (player);
+}
+
+/* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
+void apply_gravity (struct character_t *player) {
     if (player->jump) {
         if (player->y_display <= 100 && player->vel_y < 0) {
-            player->vel_y = -player->vel_y; // Inverte a direção do movimento
+            player->vel_y = -player->vel_y;                                                                      // Inverte a direção do movimento caso ele alcance a altura limite
         } 
 		else {
-            player->vel_y += GRAVITY; // Aplica a gravidade
-            //player->x_sprite = 70;
-            player->maxFrame = 7;
+            player->vel_y += GRAVITY;                                                                           // Aplica a gravidade (Diminui a altura do salto até encostar no chao)
+            player->maxFrame = 7;                                                                               // Informações sobre o frame correto da spritesheet 
             player->currentFrame = player->currentFrame * 8;	
         }
     }
 }
 
-int colisao (struct jogador *p1, struct jogador *p2) {
+/* Verifica se houve colisao entre personagens (sem ataque) */
+int collision (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display+p1->side > p2->x_display && p1->x_display< p2->x_display + p2->side) return 1;
-	else return 0;
+	if (p1->x_display+p1->side > p2->x_display && 
+        p1->x_display< p2->x_display + p2->side) 
+        return 1;
+	else 
+    return 0;
 }
 
-int colisaoGolpe (struct jogador *p1, struct jogador *p2) {
+/* Verifica se houve colisao entre os personagem quando ocorre um ataque */
+int collision_hit (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display+50+p1->side > p2->x_display && p1->x_display < p2->x_display + 50 + p2->side) return 1;	
-	else return 0;
+	if (p1->x_display + 50 + p1->side > p2->x_display && 
+        p1->x_display < p2->x_display + 50 + p2->side) 
+        return 1;	
+	else 
+    return 0;
 }
 
-void update_player_position(struct jogador *player) {
+/* Atualiza a posicao do jogador, caso ele esteja pulando*/
+void update_position_jump (struct character_t *player) {
     player->y_display += player->vel_y;
     
-    if (player->y_display >= GROUND_LEVEL) {
+    if (player->y_display >= GROUND_LEVEL) {  // Caso o jogador encoste no chão, ele atualiza os parametros para o pulo ser falso
         player->y_display = GROUND_LEVEL;
         player->vel_y = 0;
         player->jump = 0;
     }
 }
 
-void default_position (struct jogador *player1, struct jogador *player2) {
+/* Apos realizar movimentacoes, o personagem retorna para a posicao padrao */
+void default_position (struct character_t *player1, struct character_t *player2) {
     if (!player1 || !player2) return;
+
     player1->maxFrame = 4;
     player1->currentFrame = 80;
     player1->y_display = 420;
-    /*player1->controle->down = 0;
-    player1->controle->right = 0;
-    player1->controle->left= 0;
-    player1->controle->up = 0;
-    player1->controle->kick = 0;
-    player1->controle->push = 0;*/
 
     player2->maxFrame = 4;
     player2->currentFrame = 80;
     player2->y_display = 420;
-    /*player2->controle->down = 0;
-    player2->controle->right = 0;
-    player2->controle->left= 0;
-    player2->controle->up = 0;
-    player2->controle->kick = 0;
-    player2->controle->push = 0;*/
+
 }
 
-void jogadorJump(struct jogador *player) {
+void default_joystick (struct character_t *player) {
+    if (!player) return;
+
+    player->joystick->down = 0;
+    player->joystick->right = 0;
+    player->joystick->left= 0;
+    player->joystick->up = 0;
+    player->joystick->kick = 0;
+    player->joystick->push = 0;
+
+}
+
+/* Funcao responsavel por implementar o pulo do personagem*/
+void character_jump (struct character_t *player) {
     if (!player->jump) {
-        player->vel_y = JUMP_STRENGTH;
+        player->vel_y = JUMP_STRENGTH; // Vel_y recebe a altura do salto 
         player->jump = 1;
     }
 }
 
-void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, unsigned short max_x, unsigned short max_y){							//Implementação da função "jogadorMov" (-1)
+void character_move (struct character_t *element, char steps, unsigned char trajectory, unsigned short max_x, unsigned short max_y){
 
-	if (!trajectory){ 
-		if ((element->x_display - steps*STEP) + element->side/2 >= 0) {
+	if (trajectory == LEFT){ 
+		if ((element->x_display - steps * STEP) + element->side/2 >= 0) {
 			element->x_display = element->x_display - steps*STEP;  				//Verifica se a movimentação para a esquerda é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
@@ -156,45 +195,41 @@ void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, u
 			}			
 		}
 	}
-	else if (trajectory == 1){ 
+	else if (trajectory == RIGHT){ 
 		if ((element->x_display + steps*STEP)  + 200 <= max_x) {
-			element->x_display = element->x_display + steps * STEP; //Verifica se a movimentação para a direita é desejada e possível; se sim, efetiva a mesma
+			element->x_display = element->x_display + steps * STEP;             //Verifica se a movimentação para a direita é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
 				element->maxFrame = 5;
 			}			
 		}
 	}	
-	else if (trajectory == 2){ 
-		if ((element->y_display - steps*STEP) - element->side >= 0) {
-			//element->y_display = element->y_display - 200; 		//Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma
+	else if (trajectory == UP){ 
+		if ((element->y_display - steps*STEP) - element->side >= 0) {           //Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma			
 			element->x_sprite = 70;
 			element->maxFrame = 7;
 			element->currentFrame = element->currentFrame * 8;						
-			//element->y_display = element->x_display - 5;
+            element->frame = 0;			
 		}			
 	}
-	else if (trajectory == 3){ 
-		if ((element->y_display + steps*STEP) + element->side/2 <= max_y ) {
-			//element->y_display = element->y_display + steps*STEP; //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
-			if (steps > 0 && element->jump == 0 ) {
+	else if (trajectory == DOWN){ 
+		if ((element->y_display + steps*STEP) + element->side/2 <= max_y ) {			
+			if (steps > 0 && element->jump == 0 ) {                            //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
 				element->currentFrame = element->currentFrame * 9;
 				element->maxFrame = 1;			
 			}			
 		}			
 	}	
-	else if (trajectory == 4){ 
-		if (element->y_display + steps*STEP)  {
-			//element->y_display = element->y_display + steps*STEP; //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
+	else if (trajectory == PUSH){  
+		if (element->y_display + steps*STEP) {                                //Verifica se a movimentação para o soco é desejada e possível; se sim, efetiva a mesma			
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 2;
 				element->maxFrame = 3;			
 			}			
 		}			
 	}	
-	else if (trajectory == 5){ 
-		if ((element->y_display + steps*STEP) ) {
-			//element->y_display = element->y_display + steps*STEP; //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
+	else if (trajectory == KICK){ 
+		if ((element->y_display + steps*STEP) ) {                           //Verifica se a movimentação para o chute é desejada e possível; se sim, efetiva a mesma			
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 6;
 				element->maxFrame = 5;	
@@ -203,153 +238,153 @@ void jogadorMov(struct jogador *element, char steps, unsigned char trajectory, u
 	}	
 }
 
-void joystick_destroy(struct joystick *element){ free(element);}							//Implementação da função "joystick_destroy"; libera a memória do elemento na heap (!)
-
-void joystick_left(struct joystick *element){ element->left = element->left ^ 1;}			//Implementação da função "joystick_left"; muda o estado do botão (!)
-
-void joystick_right(struct joystick *element){ element->right = element->right ^ 1;}		//Implementação da função "joystick_right"; muda o estado do botão (!)
-
-void joystick_up(struct joystick *element){ element->up = element->up ^ 1;}				//Implementação da função "joystick_up"; muda o estado do botão (!)
-
-void joystick_down(struct joystick *element){ element->down = element->down ^ 1;}			//Implementação da função "joystick_down"; muda o estado do botão (!)
-
-void joystick_push(struct joystick *element){ element->push = element->push ^ 1;}
-
-void joystick_kick(struct joystick *element){ element->kick = element->kick ^ 1;}
 
 
-int update_position(struct jogador *player1, struct jogador *player2) {
-    apply_gravity(player1);
-    apply_gravity(player2);
+/* Sequencia de funcoes para detectar caso uma tecla seja pressionada/solta */
+void joystick_left (struct joystick_t *element){ element->left = element->left ^ 1;}			//Implementação da função "joystick_left"; muda o estado do botão (!)
 
-    update_player_position(player1);
-    update_player_position(player2);
+void joystick_right (struct joystick_t *element){ element->right = element->right ^ 1;}		//Implementação da função "joystick_right"; muda o estado do botão (!)
 
-    if (player1->controle->left) {
-        jogadorMov(player1, 1, 0, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player1, -1, 0, X_SCREEN, Y_SCREEN);
+void joystick_up (struct joystick_t *element){ element->up = element->up ^ 1;}				//Implementação da função "joystick_up"; muda o estado do botão (!)
+
+void joystick_down (struct joystick_t *element){ element->down = element->down ^ 1;}			//Implementação da função "joystick_down"; muda o estado do botão (!)
+
+void joystick_push (struct joystick_t *element){ element->push = element->push ^ 1;}         //Implementação da função "joystick_push"; muda o estado do botão (!)
+
+void joystick_kick (struct joystick_t *element){ element->kick = element->kick ^ 1;}         //Implementação da função "joystick_kick"; muda o estado do botão (!)
+
+
+/* Funcao principal por atualizar o posicionamento de cada personagem e selecionar*/
+int update_position (struct character_t *player1, struct character_t *player2) {
+    apply_gravity (player1);
+    apply_gravity (player2);
+
+    update_position_jump (player1);
+    update_position_jump (player2);
+
+    if (player1->joystick->left && !player1->joystick->down && !player1->joystick->right) {
+        character_move (player1, 1, 0, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player1, -1, 0, X_SCREEN, Y_SCREEN);
     }
-    if (player1->controle->right) {
-        jogadorMov(player1, 1, 1, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player1, -1, 1, X_SCREEN, Y_SCREEN);
+    if (player1->joystick->right && !player1->joystick->down && !player1->joystick->left) {
+        character_move (player1, 1, 1, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player1, -1, 1, X_SCREEN, Y_SCREEN);
     }
-    if (player1->controle->up) {
-        jogadorJump(player1);
-		//jogadorMov(player1, 1, 2, X_SCREEN, Y_SCREEN);
+    if (player1->joystick->up) {
+        character_jump (player1);		
     }
-    if (player1->controle->down) {
-        jogadorMov(player1, 1, 3, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player1, -1, 3, X_SCREEN, Y_SCREEN);
+    if (player1->joystick->down) {
+        character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player1, -1, 3, X_SCREEN, Y_SCREEN);
     }
-    if (player1->controle->push) {
-        jogadorMov(player1, 1, 4, X_SCREEN, Y_SCREEN);
-        if (colisaoGolpe(player1, player2)) return 2;
-        else return 0;
+    if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
+        character_move (player1, 1, 4, X_SCREEN, Y_SCREEN);
+        if (collision_hit (player1, player2)) return 2;        
     }
-    if (player1->controle->kick) {
-        jogadorMov(player1, 1, 5, X_SCREEN, Y_SCREEN);
-        if (colisaoGolpe(player1, player2)) return 2;
-        else return 0;
+    if (player1->joystick->kick && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
+        character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
+        if (collision_hit(player1, player2)) return 2;        
     }
-    if (player2->controle->left) {
-        jogadorMov(player2, 1, 0, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player2, -1, 0, X_SCREEN, Y_SCREEN);
+    if (player2->joystick->left && !player2->joystick->down && !player2->joystick->right) {
+        character_move (player2, 1, 0, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player2, -1, 0, X_SCREEN, Y_SCREEN);
     }
-    if (player2->controle->right) {
-        jogadorMov(player2, 1, 1, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player2, -1, 1, X_SCREEN, Y_SCREEN);
+    if (player2->joystick->right && !player2->joystick->down && !player2->joystick->left) {
+        character_move (player2, 1, 1, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player2, -1, 1, X_SCREEN, Y_SCREEN);
     }
-    if (player2->controle->up) {
-        jogadorJump(player2);
+    if (player2->joystick->up) {
+        character_jump (player2);
     }
-    if (player2->controle->down) {
-        jogadorMov(player2, 1, 3, X_SCREEN, Y_SCREEN);
-        if (colisao(player1, player2)) jogadorMov(player2, -1, 3, X_SCREEN, Y_SCREEN);
+    if (player2->joystick->down) {
+        character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);
+        if (collision (player1, player2)) character_move (player2, -1, 3, X_SCREEN, Y_SCREEN);
     }
-    if (player2->controle->push) {
-        jogadorMov(player2, 1, 4, X_SCREEN, Y_SCREEN);
-        if (colisaoGolpe(player1, player2)) return 1;
-        else return 0;
+    if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
+        character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
+        if (collision_hit (player1, player2)) return 1;        
     }
-    if (player2->controle->kick) {
-        jogadorMov(player2, 1, 5, X_SCREEN, Y_SCREEN);
-        if (colisaoGolpe(player1, player2)) return 1;
-        else return 0;
+    if (player2->joystick->kick && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
+        character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
+        if (collision_hit (player1, player2)) return 1;       
     }
     return 0;
 }
 
-char SelecionaPersonagem (ALLEGRO_FONT* font) {
-    char letra = '\0';
+/* Limpa a fila de eventos do teclado. Usado quando o jogo/rodada são iniciados */
+void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue) {
+    ALLEGRO_EVENT event;
+    while (!al_is_event_queue_empty(queue)) {
+        al_get_next_event(queue, &event);
+    }
+}
+
+/* Usuario decide entre qual personagem ele irá escolher para jogar*/
+char choose_character (ALLEGRO_FONT* font) {
+    char letter = '\0';
     al_clear_to_color(al_map_rgb(0, 0, 0));
     ALLEGRO_BITMAP *fundoMenu = al_load_bitmap("./fundoMenuPrincipal.jpg");
     ALLEGRO_BITMAP *ryu = al_load_bitmap("./SelecionaRyu.png");
     ALLEGRO_BITMAP *ken = al_load_bitmap("./SelecionaKen.png");
-    al_draw_bitmap(fundoMenu, 0, 0, 0);
-    al_draw_text(font, al_map_rgb(255,255,255), 525, 50, 0, "Player 1: Selecione o personagem");
+    al_draw_bitmap (fundoMenu, 0, 0, 0);
+    al_draw_text (font, al_map_rgb(255,255,255), 525, 50, 0, "Player 1: SELECT THE CHARACTER");
     
     al_draw_scaled_bitmap(ryu, 0, 0, 736 ,1233, 400, 180, 300, 300, 0);                     
     al_draw_scaled_bitmap(ken, 0, 0, 736 ,1233, 800, 180, 300, 300, 0);                     
-    al_flip_display();
+    al_flip_display ();
     
-    ALLEGRO_EVENT_QUEUE *fila_eventos = al_create_event_queue();
-    al_register_event_source(fila_eventos, al_get_keyboard_event_source());
+    ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
+    al_register_event_source (event_queue, al_get_keyboard_event_source());
 	ALLEGRO_EVENT event;
     do {        
-        al_wait_for_event(fila_eventos, &event);
+        al_wait_for_event (event_queue, &event);
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
             if (event.keyboard.keycode == ALLEGRO_KEY_R) {
-                letra = 'R';
+                letter = 'R';
             } else if (event.keyboard.keycode == ALLEGRO_KEY_K) {
-                letra = 'K';
+                letter = 'K';
             } else if( event.type == ALLEGRO_EVENT_DISPLAY_CLOSE ){
             break;
         }
         }
-    } while (letra != 'R' && letra != 'K');
+    } while (letter != 'R' && letter != 'K');
 
-    al_destroy_event_queue(fila_eventos);
+    clear_event_queue (event_queue);
+    al_destroy_event_queue(event_queue);
+    al_destroy_bitmap (fundoMenu);
+    al_destroy_bitmap (ryu);
+    al_destroy_bitmap (ken);
+    
     al_clear_to_color(al_map_rgb(0, 0, 0));
-	return letra;
+	return letter;
 }
 
-void gamePaused(ALLEGRO_FONT *font) {
-    // Verifica se o ponteiro para o fonte é válido
+/* Funcao que pausa o jogo durante o round */
+void game_paused (ALLEGRO_FONT *font) {    
     if (!font) return;
+    
+    ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();    // Cria uma fila de eventos para capturar eventos do teclado
+    al_register_event_source(event_queue, al_get_keyboard_event_source());
 
-    // Cria uma fila de eventos para capturar eventos do teclado
-    ALLEGRO_EVENT_QUEUE *fila_eventos = al_create_event_queue();
-    al_register_event_source(fila_eventos, al_get_keyboard_event_source());
-
-    // Declara uma variável para armazenar o evento
     ALLEGRO_EVENT event;
+    int pause = 1;
 
-    // Variável para controlar se o jogo está pausado
-    bool jogo_pausado = true;
+    while (pause) {
 
-    // Loop principal do jogo pausado
-    while (jogo_pausado) {
-        // Aguarda por um evento de teclado
-        al_wait_for_event(fila_eventos, &event);
-
-        // Verifica se a tecla P foi pressionada para retomar o jogo
-        if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) {
-            jogo_pausado = false; // Define que o jogo não está mais pausado
-        }
-
-        // Desenha o texto "JOGO PAUSADO" na tela
-        al_draw_text(font, al_map_rgb(0, 0, 0), 530, 330, 0, "JOGO PAUSADO");
-        al_draw_text(font, al_map_rgb(255, 255, 255), 530, 325, 0, "JOGO PAUSADO");
-
-        // Atualiza a tela
+        al_wait_for_event(event_queue, &event); // Aguarda um evento        
+        if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) // Verifica se a tecla P foi pressionada para retomar o jogo
+            pause = 0; // Define que o jogo não está mais pausado
+                
+        al_draw_text(font, al_map_rgb(0, 0, 0), 530, 330, 0, "PAUSE");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 530, 325, 0, "PAUSE");
         al_flip_display();
-    }
-
-    // Libera a memória da fila de eventos
-    al_destroy_event_queue(fila_eventos);
+    } 
+    clear_event_queue (event_queue);
+    al_destroy_event_queue(event_queue);
 }
 
 
+/* Menu principal do jogo. Usuario pode continuar a jogar ou quitar*/
 void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo) {
     al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(menuBitmap, 0, 0, 0);
@@ -367,7 +402,7 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
 	ALLEGRO_EVENT event;
     while (1) {        
 
-        al_wait_for_event(event_queue, &event);
+        al_wait_for_event (event_queue, &event);
         if( event.type == ALLEGRO_EVENT_DISPLAY_CLOSE ){
             break;
         }
@@ -380,25 +415,32 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
             }            
         }
     }
-    al_destroy_event_queue(event_queue);
-	al_clear_to_color(al_map_rgb(255,255,255));
+    clear_event_queue (event_queue);
+    al_destroy_event_queue (event_queue);
+	al_clear_to_color (al_map_rgb(255,255,255));
 }
 
+/* Reseta as configuracoes para o inicio de um novo round*/
+void reset_character (struct character_t *player1, struct character_t *player2) {
 
-void resetaPlayers (struct jogador *player1, struct jogador *player2) {
+    //Redefini a vida do jogador
 	player1->life = 600;
 	player2->life = 600;
+
+    //Posicionamento no cenario
 	player1->x_display = 200;
 	player2->x_display = 800;
 }
 
-int temVencedorPartida (ALLEGRO_FONT *font, struct jogador *player1, struct jogador *player2) {
-	if (player1->rounds >=2 || player2->rounds >= 2) return 1; 
+/* Verifica se ha um vencedor na partida. Nessario possuir 2 rounds vencidos */
+int has_winner_match (ALLEGRO_FONT *font, struct character_t *player1, struct character_t *player2) {
+	if (player1->rounds_won >=2 || player2->rounds_won >= 2) return 1; 
     else return 0;
 }
 
-void imprimeVencedor (ALLEGRO_FONT *font, struct jogador *player1, struct jogador *player2) {
-	if (player1->rounds >=2) {
+/* Imprime a mensagem de qual jogador venceu o jogo */
+void print_winner (ALLEGRO_FONT *font, struct character_t *player1, struct character_t *player2) {
+	if (player1->rounds_won >=2) {
         al_draw_text(font, al_map_rgb(0,0,0), 530, 330, 0, "Player 1 venceu o jogo!");
         al_draw_text(font, al_map_rgb(255,255,255), 530, 325, 0, "Player 1 venceu o jogo!");
     }    
@@ -408,35 +450,44 @@ void imprimeVencedor (ALLEGRO_FONT *font, struct jogador *player1, struct jogado
     }
 }
 
-int acabouRound (struct jogador *player1, struct jogador *player2, int *tempo) {
-    if (player1->life <= 0 || player2->life <= 0 || *tempo <= 0) return 1;
+/* Verifica se o round acabou por tempo ou por quantidade de vida/hp */
+int end_round (struct character_t *player1, struct character_t *player2, int *timming) {
+    if (player1->life <= 0 || player2->life <= 0 || *timming <= 0) return 1;
 	else return 0;
 }
 
-void verificaVencedorRound (struct jogador *player1, struct jogador *player2) {
-    if (player1->life > player2->life) player1->rounds++;
-    else if (player2->life > player1->life) player2->rounds++;
+/* Verifica se algum jogador venceu a rodada*/
+void check_winner (struct character_t *player1, struct character_t *player2) {
+    if (player1->life > player2->life) player1->rounds_won++;
+    else if (player2->life > player1->life) player2->rounds_won++;
     else {
-        player1->rounds++;
-        player2->rounds++;
+        player1->rounds_won++;
+        player2->rounds_won++;
     }    
 }
 
-void retiraVida (struct jogador *player1, struct jogador *player2, int jogador) {
-	if (jogador == 1) player1->life -= 5;
-	else if (jogador == 2) player2->life -= 5;
-}
+/* Remove os pontos de vida do jogador dependendo da variavel 'jogador' */
+void remove_life (struct character_t *player1, struct character_t *player2, int jogador) {
+	if (jogador == 1 && player1->joystick->down == 0) {
+        player1->life -= 5;
+        player1->currentFrame = player1->currentFrame * 10;
+        player1->maxFrame = 1;
+        player1->frame = 0;
 
-void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue) {
-    ALLEGRO_EVENT event;
-    while (!al_is_event_queue_empty(queue)) {
-        al_get_next_event(queue, &event);
+    }
+	else if (jogador == 2 && player2->joystick->down == 0) {
+        player2->life -= 5;
+        player2->currentFrame = player2->currentFrame * 10;
+        player2->maxFrame = 1;
+        player2->frame = 0;
+
     }
 }
 
-void imprimeCenario (struct jogador *player1, struct jogador *player2, ALLEGRO_BITMAP *bg, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
+/* Imprime o cenario / background */
+void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
 	al_clear_to_color(al_map_rgb(0,0,0));
-	al_draw_bitmap(bg, 0, 0, 0);
+	al_draw_bitmap(scene, 0, 0, 0);
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
 	al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 255, 255));
 	al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
@@ -452,85 +503,84 @@ void imprimeCenario (struct jogador *player1, struct jogador *player2, ALLEGRO_B
 	al_draw_filled_circle(680, 80, 10, al_map_rgb(0, 0, 0));
 	al_draw_filled_circle(700, 80, 10, al_map_rgb(0, 0, 0));	
 
-	if (player1->rounds == 1) {
+	if (player1->rounds_won == 1) {
 		al_draw_filled_circle(580, 80, 10, al_map_rgb(255, 255, 0));
 	}
-	if (player2->rounds == 1) {
+	if (player2->rounds_won == 1) {
 		al_draw_filled_circle(680, 80, 10, al_map_rgb(255, 255, 0));
 	}
 
-	if (player1->rounds + player2->rounds == 0) {
+	if (player1->rounds_won + player2->rounds_won == 0) {
 		al_draw_scaled_bitmap (rounds[0],0,0,372,118,597,100,100,50,0);
 	}
-	else if (player1->rounds + player2->rounds == 1)
+	else if (player1->rounds_won + player2->rounds_won == 1)
 		al_draw_scaled_bitmap (rounds[1],0,0,372,118,597,100,100,50,0);
 
-	else if (player1->rounds + player2->rounds == 2)
+	else if (player1->rounds_won + player2->rounds_won == 2)
 		al_draw_scaled_bitmap (rounds[2],0,0,372,118,597,100,100,50,0);	
 }
 
-void imprimeTempo (ALLEGRO_FONT*font, int *num, int *fps) {
+/* Imprime o cronometro da rodada */
+void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
     if (!font) return;
     if (*fps >= 30) {
         (*num)--;
         *fps = 0;
     }
-    char tempo[2];
-    sprintf (tempo, "%d", *num);
-    al_draw_text(font, al_map_rgb(0,0,0), 615, 15, 0, tempo);
+    char timming[2];
+    sprintf (timming, "%d", *num);
+    al_draw_text(font, al_map_rgb(0,0,0), 615, 15, 0, timming);
 }
 
-//flag de golpe = true or false
-/*
-    se soco ou chute ou pulo for verdadeiro
-        frame = 0
-        while i < maxframe
-        al draw
-*/
-void imprimePersonagens(struct jogador *player1, struct jogador *player2, float *frame1, float *frame2) {
-    *frame1 += 0.3f;
-    *frame2 += 0.3f;
+/* Imprime os personagem na tela conforme o frame atual */
+void print_character(struct character_t *player1, struct character_t *player2) {
+    player1->frame += 0.3f;
+    player2->frame += 0.3f;
 
-    if (*frame1 > player1->maxFrame)
-        *frame1 -= player1->maxFrame;    
+    if (player1->frame > player1->maxFrame)
+        player1->frame -= player1->maxFrame;    
 
-    if (*frame2 > player2->maxFrame) 
-        *frame2 -= player2->maxFrame;
+    if (player2->frame > player2->maxFrame) 
+        player2->frame -= player2->maxFrame;
     
-    al_draw_scaled_bitmap(player1->lutador, player1->x_sprite * (int)(*frame1), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 250, 250, 0);
-    al_draw_scaled_bitmap(player2->lutador, player2->x_sprite * (int)(*frame2), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 250, 250, 0);    
+    if (player1->frame > 6 && player1->jump) player1->frame = 5;
+
+    if (player2->frame > 6 && player2->jump) player2->frame = 5;
+
+    al_draw_scaled_bitmap(player1->fighter, player1->x_sprite * (int)(player1->frame), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 250, 250, player1->direction);
+    al_draw_scaled_bitmap(player2->fighter, player2->x_sprite * (int)(player2->frame), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 250, 250, player2->direction);    
 }
 
 int main () {
 
-    al_init();
+    al_init(); //Faz a preparação de requisitos da biblioteca Allegro
     al_init_font_addon();
     al_init_ttf_addon();
     al_init_image_addon();
-    al_install_keyboard();
-	al_init_primitives_addon();	
+    al_install_keyboard(); //Habilita a entrada via teclado (eventos de teclado), no programa
+	al_init_primitives_addon();	//Faz a inicialização dos addons das imagens básicas
 
-	char personagem;
-	float frame1 = 0.f, frame2 = 0.f;
-	int vida, gameIniciado = 0, tempo = 90, fps = 0;
+	char fighter;	
+	int hp, game_on = 0, timming = CLOCK, fps = 0;
 		
-	struct jogador* player1;
-    struct jogador* player2;
+	struct character_t* player1;
+    struct character_t* player2;
 
-    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0);
-    ALLEGRO_DISPLAY *display = al_create_display(1280,720);
+    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0); //Cria o relógio do jogo; isso indica quantas atualizações serão realizadas por segundo (30, neste caso)
+    ALLEGRO_DISPLAY *display = al_create_display(X_SCREEN,Y_SCREEN); //Cria uma janela para o programa, define a largura (x) e a altura (y) da tela em píxeis (320x320, neste caso)
     ALLEGRO_FONT* font = al_load_font("./Act_Of_Rejection.ttf", 25, 0);
     ALLEGRO_FONT* time = al_load_font("./DS-DIGIT.TTF", 45, 0);
 
+    /* Carrega as imagens dos personagens e do cenario*/
     ALLEGRO_BITMAP * ken = al_load_bitmap("./Ken.png");
     ALLEGRO_BITMAP * ryu = al_load_bitmap ("./Ryu.png");
-	ALLEGRO_BITMAP * kenEsq = al_load_bitmap("./KenEsq.png");
-    ALLEGRO_BITMAP * ryuEsq = al_load_bitmap ("./RyuEsq.png");
-    ALLEGRO_BITMAP * bg = al_load_bitmap("./cenario.jpg");
+
+    ALLEGRO_BITMAP * scene = al_load_bitmap("./cenario.jpg");
     ALLEGRO_BITMAP * logo = al_load_bitmap("StreetFighterArcTitle2.png");
     ALLEGRO_BITMAP * menuBitmap = al_load_bitmap("./menuNovo.jpg");
 	ALLEGRO_BITMAP * rounds[ROUNDS];
 
+    /* Imagem para definir qual eh o round atual que esta sendo jogado */
 	rounds[0] = al_load_bitmap("./rounds1.png");
 	rounds[1] = al_load_bitmap("./rounds2.png");
 	rounds[2] = al_load_bitmap("./rounds3.png");
@@ -551,69 +601,86 @@ int main () {
     while (1) {
 		al_wait_for_event(event_queue, &event);	
 
-		if (!gameIniciado) {
+		if (!game_on) {
 			menu (font, menuBitmap, logo);
-			personagem = SelecionaPersonagem (font); 
-			if (personagem == 'R' || personagem == 'r')   {
-				player1 = criaJogador (ryu, 70, 80, 200, 420, 1000, 1000, 80);
-				player2 = criaJogador (kenEsq, 70, 80, 800, 420, 1000, 1000, 80);
+			fighter = choose_character (font); 
+			if (fighter == 'R' || fighter == 'r')   {
+				player1 = create_character (ryu, 70, 80, 200, 420, 1000, 1000, 80, 0);
+				player2 = create_character (ken, 70, 80, 800, 420, 1000, 1000, 80, 1);
 			}
 			else {
-				player1 = criaJogador (ken, 70, 80, 200, 420, 1000, 1000, 80);
-				player2 = criaJogador (ryuEsq, 70 ,80, 800, 420, 1000, 1000, 80);
+				player1 = create_character (ken, 70, 80, 200, 420, 1000, 1000, 80, 0);
+				player2 = create_character (ryu, 70 ,80, 800, 420, 1000, 1000, 80, 1);
 			}
-			gameIniciado = 1;
+			game_on = 1;
             clear_event_queue (event_queue);
 		}		
 
-		if (event.type == 30) {
-			vida = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)			
-			retiraVida (player1, player2, vida);
-			al_clear_to_color(al_map_rgb(0,0,0));
-			imprimeCenario(player1, player2, bg, font, rounds);
-			imprimePersonagens (player1, player2, &frame1, &frame2);
-            imprimeTempo (time, &tempo, &fps);                
+		if (event.type == ALLEGRO_EVENT_TIMER) {
+			hp = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)			
+			remove_life (player1, player2, hp);
+			al_clear_to_color(al_map_rgb (0,0,0));
+			print_scene (player1, player2, scene, font, rounds);
+			print_character (player1, player2);
+            print_time (time, &timming, &fps);                
 		}	
 
-		if (acabouRound(player1, player2, &tempo)) {
-			verificaVencedorRound (player1, player2);
-			resetaPlayers (player1, player2);
+		if (end_round (player1, player2, &timming)) {
+			check_winner (player1, player2);
+			reset_character (player1, player2);
             clear_event_queue (event_queue);
             al_rest (1.5);   
-            tempo = 90;         
+            timming = CLOCK;         
 		}
 
-		if (temVencedorPartida (font, player1, player2)) {
-            gameIniciado = 0; 
-            tempo = 90;          
-            imprimeVencedor(font, player1, player2);
+		if (has_winner_match (font, player1, player2)) {
+            game_on = 0; 
+            timming = CLOCK;          
+            print_winner(font, player1, player2);
             al_flip_display();
             al_rest (4.0);
         }
 
-	    if ((event.type == 10) || (event.type == 12)){																																				//Verifica se o evento é de botão do teclado abaixado ou levantado (!)
-			if (event.keyboard.keycode == ALLEGRO_KEY_A)          joystick_left(player1->controle);																															//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_D)     joystick_right(player1->controle);																													//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação à direita) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_W)     joystick_up(player1->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_S)     joystick_down(player1->controle);	
-			else if (event.keyboard.keycode == ALLEGRO_KEY_X)     joystick_push(player1->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_C)     joystick_kick(player1->controle);																												//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)  joystick_left(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação à direita) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_UP)    joystick_up(player2->controle);																														//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)  joystick_down(player2->controle);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_M)     joystick_push(player2->controle);																														//Indica o evento correspondente no controle do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_N)     joystick_kick(player2->controle);
+	    if ((event.type == ALLEGRO_EVENT_KEY_DOWN) || (event.type == ALLEGRO_EVENT_KEY_UP)){																																				//Verifica se o evento é de botão do teclado abaixado ou levantado (!)
+			if (event.keyboard.keycode == ALLEGRO_KEY_A)          joystick_left(player1->joystick);																															//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação à esquerda) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_D)     joystick_right(player1->joystick);																													//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação à direita) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_W)     joystick_up(player1->joystick);																														//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_S )    joystick_down(player1->joystick);	
+			else if (event.keyboard.keycode == ALLEGRO_KEY_X)     joystick_push(player1->joystick);																														//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_C)     joystick_kick(player1->joystick);																												//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para baixo) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)  joystick_left(player2->joystick);																													//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação à esquerda) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->joystick);																													//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação à direita) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_UP)    joystick_up(player2->joystick);																														//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)  joystick_down(player2->joystick);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_M)     joystick_push(player2->joystick);																														//Indica o evento correspondente no jo do primeiro jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_N)     joystick_kick(player2->joystick);
             
 		}
-	    else if (event.type == 42) break;																																	                                    	//Evento de clique no "X" de fechamento da tela. Encerra o programa graciosamente.               
-
-        if (event.type == 10 && event.keyboard.keycode == ALLEGRO_KEY_P) {gamePaused(font); clear_event_queue(event_queue);}
+	    else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;																																                                    	//Evento de clique no "X" de fechamento da tela. Encerra o programa graciosamente.               
+        if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) {
+            game_paused (font);
+            clear_event_queue(event_queue);
+        }
 
         fps++;
         default_position (player1, player2);
 		al_flip_display();        
     }
-
+    /* Destruir tudo*/
+    clear_event_queue (event_queue);
+    al_destroy_font(font);	
+    al_destroy_font(time);	
+    al_destroy_timer(timer);
+    al_destroy_event_queue(event_queue);
+    al_destroy_bitmap (scene);
+    al_destroy_bitmap (ken);
+    al_destroy_bitmap (ryu);
+    al_destroy_bitmap (logo);
+    al_destroy_bitmap (menuBitmap);    
+    for (int i = 0; i < ROUNDS; i++)
+        al_destroy_bitmap (rounds[i]);
+    destroy_character (player1);
+    destroy_character (player2);
+    al_destroy_display (display);
 	return 0;
 }
