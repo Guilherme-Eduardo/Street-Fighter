@@ -238,8 +238,6 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 	}	
 }
 
-
-
 /* Sequencia de funcoes para detectar caso uma tecla seja pressionada/solta */
 void joystick_left (struct joystick_t *element){ element->left = element->left ^ 1;}			//Implementação da função "joystick_left"; muda o estado do botão (!)
 
@@ -275,7 +273,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     }
     if (player1->joystick->down) {
         character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);
-        if (collision (player1, player2)) character_move (player1, -1, 3, X_SCREEN, Y_SCREEN);
+        //if (collision (player1, player2)) character_move (player1, -1, 3, X_SCREEN, Y_SCREEN);
     }
     if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
         character_move (player1, 1, 4, X_SCREEN, Y_SCREEN);
@@ -298,7 +296,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     }
     if (player2->joystick->down) {
         character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);
-        if (collision (player1, player2)) character_move (player2, -1, 3, X_SCREEN, Y_SCREEN);
+        //if (collision (player1, player2)) character_move (player2, -1, 3, X_SCREEN, Y_SCREEN);
     }
     if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
         character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
@@ -489,9 +487,9 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_clear_to_color(al_map_rgb(0,0,0));
 	al_draw_bitmap(scene, 0, 0, 0);
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
-	al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 255, 255));
+	al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
-	al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 255, 255));
+	al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (670, 10, 670 + player2->life, 60, red);
 
 	al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
@@ -529,7 +527,7 @@ void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
     }
     char timming[2];
     sprintf (timming, "%d", *num);
-    al_draw_text(font, al_map_rgb(0,0,0), 615, 15, 0, timming);
+    al_draw_text(font, al_map_rgb(255,255,255), 615, 5, 0, timming);
 }
 
 /* Imprime os personagem na tela conforme o frame atual */
@@ -652,8 +650,8 @@ int main () {
 			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->joystick);																													//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação à direita) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_UP)    joystick_up(player2->joystick);																														//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação para cima) (!)
 			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)  joystick_down(player2->joystick);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_M)     joystick_push(player2->joystick);																														//Indica o evento correspondente no jo do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_N)     joystick_kick(player2->joystick);
+			else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_DELETE)     joystick_push(player2->joystick);																														//Indica o evento correspondente no jo do primeiro jogador (botão de movimentação para cima) (!)
+			else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0)     joystick_kick(player2->joystick);
             
 		}
 	    else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;																																                                    	//Evento de clique no "X" de fechamento da tela. Encerra o programa graciosamente.               

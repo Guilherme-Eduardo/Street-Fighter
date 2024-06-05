@@ -5,7 +5,5 @@ LIBS=$(shell pkg-config allegro-5 allegro_main-5 allegro_font-5 allegro_ttf-5 al
 a4: a4.c
 	$(CC) $(CFLAGS) -o a4 a4.c $(LIBS)
 
-.PHONY: clean
-
 clean:
-	rm -f a4
+	rm -f *.o a4
