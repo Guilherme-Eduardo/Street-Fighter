@@ -33,7 +33,7 @@ struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, uns
     player->fighter = nome;    
     player->maxFrame = 4;
     player->side = 100;
-    player->life = 600;
+    player->life = 360;
     player->rounds_won = 0;
     player->vel_y = 0;
     player->jump = 0;	
@@ -68,8 +68,8 @@ void apply_gravity (struct character_t *player) {
 /* Verifica se houve colisao entre personagens (sem ataque) */
 int collision (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display+p1->side > p2->x_display && 
-        p1->x_display< p2->x_display + p2->side) 
+	if (p1->x_display + p1->side/2 > p2->x_display && 
+        p1->x_display < p2->x_display + p2->side/2) 
         return 1;
 	else 
     return 0;
@@ -78,11 +78,10 @@ int collision (struct character_t *p1, struct character_t *p2) {
 /* Verifica se houve colisao entre os personagem quando ocorre um ataque */
 int collision_hit (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display + 50 + p1->side > p2->x_display && 
-        p1->x_display < p2->x_display + 50 + p2->side) 
+	if (p1->x_display + p1->side > p2->x_display && 
+        p1->x_display < p2->x_display +  p2->side) 
         return 1;	
-	else 
-    return 0;
+	else return 0;
 }
 
 /* Atualiza a posicao do jogador, caso ele esteja pulando*/
@@ -107,7 +106,6 @@ void default_position (struct character_t *player1, struct character_t *player2)
     player2->maxFrame = 4;
     player2->currentFrame = 80;
     player2->y_display = 420;
-
 }
 
 void default_joystick (struct character_t *player) {
@@ -142,7 +140,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 		}
 	}
 	else if (trajectory == RIGHT){ 
-		if ((element->x_display + steps*STEP)  + 200 <= max_x) {
+		if ((element->x_display + steps * STEP) + element->side <= max_x) {
 			element->x_display = element->x_display + steps * STEP;             //Verifica se a movimentação para a direita é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
@@ -227,8 +225,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_jump (player2);
     }
     if (player2->joystick->down) {
-        character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);
-        //if (collision (player1, player2)) character_move (player2, -1, 3, X_SCREEN, Y_SCREEN);
+        character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);        
     }
     if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
         character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
@@ -253,14 +250,14 @@ void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue) {
 char choose_character (ALLEGRO_FONT* font) {
     char letter = '\0';
     al_clear_to_color(al_map_rgb(0, 0, 0));
-    ALLEGRO_BITMAP *fundoMenu = al_load_bitmap("./fundoMenuPrincipal.jpg");
-    ALLEGRO_BITMAP *ryu = al_load_bitmap("./SelecionaRyu.png");
-    ALLEGRO_BITMAP *ken = al_load_bitmap("./SelecionaKen.png");
+    ALLEGRO_BITMAP *fundoMenu = al_load_bitmap("./images/fundoMenuPrincipal.jpg");
+    ALLEGRO_BITMAP *ryu = al_load_bitmap("./images/SelecionaRyu.png");
+    ALLEGRO_BITMAP *ken = al_load_bitmap("./images/SelecionaKen.png");
     al_draw_bitmap (fundoMenu, 0, 0, 0);
-    al_draw_text (font, al_map_rgb(255,255,255), 525, 50, 0, "Player 1: SELECT THE CHARACTER");
+    al_draw_text (font, al_map_rgb(255,255,255), 300, 50, 0, "Player 1: SELECT THE CHARACTER");
     
-    al_draw_scaled_bitmap(ryu, 0, 0, 736 ,1233, 400, 180, 300, 300, 0);                     
-    al_draw_scaled_bitmap(ken, 0, 0, 736 ,1233, 800, 180, 300, 300, 0);                     
+    al_draw_scaled_bitmap(ryu, 0, 0, 736 ,1233, 100, 180, 300, 300, 0);                     
+    al_draw_scaled_bitmap(ken, 0, 0, 736 ,1233, 500, 180, 300, 300, 0);                     
     al_flip_display ();
     
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
@@ -273,12 +270,11 @@ char choose_character (ALLEGRO_FONT* font) {
                 letter = 'R';
             } else if (event.keyboard.keycode == ALLEGRO_KEY_K) {
                 letter = 'K';
-            } else if( event.type == ALLEGRO_EVENT_DISPLAY_CLOSE ){
-            break;
+            } 
         }
-        }
+        if( event.type == ALLEGRO_EVENT_DISPLAY_CLOSE ) exit(1);
     } while (letter != 'R' && letter != 'K');
-
+    
     clear_event_queue (event_queue);
     al_destroy_event_queue(event_queue);
     al_destroy_bitmap (fundoMenu);
@@ -318,12 +314,12 @@ void game_paused (ALLEGRO_FONT *font) {
 void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo) {
     al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(menuBitmap, 0, 0, 0);
-    al_draw_bitmap(logo, 440, 150, 0);   
-    al_draw_text(font, al_map_rgb(0,0,0), 530, 330, 0, "Press ENTER to begin");
-    al_draw_text(font, al_map_rgb(255,255,255), 530, 325, 0, "Press ENTER to begin");
+    al_draw_bitmap(logo, 250, 150, 0);   
+    al_draw_text(font, al_map_rgb(0,0,0), 330, 330, 0, "Press ENTER to begin");
+    al_draw_text(font, al_map_rgb(255,255,255), 330, 325, 0, "Press ENTER to begin");
 
-    al_draw_text(font, al_map_rgb(0,0,0), 530, 380, 0, "Press ESC to quit");
-    al_draw_text(font, al_map_rgb(255,255,255), 530, 375, 0, "Press ESC to quit");
+    al_draw_text(font, al_map_rgb(0,0,0), 340, 380, 0, "Press ESC to quit");
+    al_draw_text(font, al_map_rgb(255,255,255), 340, 375, 0, "Press ESC to quit");
 
     al_flip_display();
 
@@ -333,8 +329,8 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
     while (1) {        
 
         al_wait_for_event (event_queue, &event);
-        if( event.type == 30 ){
-            break;
+        if( event.type == 42 ){
+            exit(1);
         }
 
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
@@ -355,12 +351,12 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
 void reset_character (struct character_t *player1, struct character_t *player2) {
 
     //Redefini a vida do jogador
-	player1->life = 600;
-	player2->life = 600;
+	player1->life = 360;
+	player2->life = 360;
 
     //Posicionamento no cenario
 	player1->x_display = 200;
-	player2->x_display = 800;
+	player2->x_display = 400;
 }
 
 /* Verifica se ha um vencedor na partida. Nessario possuir 2 rounds vencidos */
@@ -420,35 +416,36 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_clear_to_color(al_map_rgb(0,0,0));
 	al_draw_bitmap(scene, 0, 0, 0);
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
-	al_draw_filled_rectangle (5, 5, 615, 65, al_map_rgb(255, 218, 185));
+
+	al_draw_filled_rectangle (5, 5, 375, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
-	al_draw_filled_rectangle (665, 5, 1275, 65, al_map_rgb(255, 218, 185));
-	al_draw_filled_rectangle (670, 10, 670 + player2->life, 60, red);
+	al_draw_filled_rectangle (425, 5, 795, 65, al_map_rgb(255, 218, 185));
+	al_draw_filled_rectangle (430, 10, 430 + player2->life, 60, red);
 
 	al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
-	al_draw_text(font, al_map_rgb(0,0,0), 1175, 20, 0, "player2");
+	al_draw_text(font, al_map_rgb(0,0,0), 720, 20, 0, "player2");
 
-	al_draw_filled_circle(580, 80, 10, al_map_rgb(0, 0, 0));
-	al_draw_filled_circle(600, 80, 10, al_map_rgb(0, 0, 0));
+	al_draw_filled_circle(340, 80, 10, al_map_rgb(0, 0, 0));
+	al_draw_filled_circle(360, 80, 10, al_map_rgb(0, 0, 0));
 
-	al_draw_filled_circle(680, 80, 10, al_map_rgb(0, 0, 0));
-	al_draw_filled_circle(700, 80, 10, al_map_rgb(0, 0, 0));	
+	al_draw_filled_circle(440, 80, 10, al_map_rgb(0, 0, 0));
+	al_draw_filled_circle(460, 80, 10, al_map_rgb(0, 0, 0));	
 
 	if (player1->rounds_won == 1) {
-		al_draw_filled_circle(580, 80, 10, al_map_rgb(255, 255, 0));
+		al_draw_filled_circle(340, 80, 10, al_map_rgb(255, 255, 0));
 	}
 	if (player2->rounds_won == 1) {
-		al_draw_filled_circle(680, 80, 10, al_map_rgb(255, 255, 0));
+		al_draw_filled_circle(440, 80, 10, al_map_rgb(255, 255, 0));
 	}
 
 	if (player1->rounds_won + player2->rounds_won == 0) {
-		al_draw_scaled_bitmap (rounds[0],0,0,372,118,597,100,100,50,0);
+		al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
 	}
 	else if (player1->rounds_won + player2->rounds_won == 1)
-		al_draw_scaled_bitmap (rounds[1],0,0,372,118,597,100,100,50,0);
+		al_draw_scaled_bitmap (rounds[1],0,0,372,118,350,100,100,50,0);
 
 	else if (player1->rounds_won + player2->rounds_won == 2)
-		al_draw_scaled_bitmap (rounds[2],0,0,372,118,597,100,100,50,0);	
+		al_draw_scaled_bitmap (rounds[2],0,0,372,118,350,100,100,50,0);	
 }
 
 /* Imprime o cronometro da rodada */
@@ -460,7 +457,7 @@ void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
     }
     char timming[2];
     sprintf (timming, "%d", *num);
-    al_draw_text(font, al_map_rgb(255,255,255), 615, 5, 0, timming);
+    al_draw_text(font, al_map_rgb(255,255,255), 375, 5, 0, timming);
 }
 
 /* Imprime os personagem na tela conforme o frame atual */

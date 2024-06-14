@@ -5,7 +5,7 @@
 
 #define STEP 12
 #define X_SCREEN 800
-#define Y_SCREEN 600    
+#define Y_SCREEN 600   
 #define MAX_FRAME 4
 #define ROUNDS 3
 #define GRAVITY 5.0
@@ -36,22 +36,22 @@ int main () {
 
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0); //Cria o relógio do jogo; isso indica quantas atualizações serão realizadas por segundo (30, neste caso)
     ALLEGRO_DISPLAY *display = al_create_display(X_SCREEN,Y_SCREEN); //Cria uma janela para o programa, define a largura (x) e a altura (y) da tela em píxeis (320x320, neste caso)
-    ALLEGRO_FONT* font = al_load_font("./Act_Of_Rejection.ttf", 25, 0);
-    ALLEGRO_FONT* time = al_load_font("./DS-DIGIT.TTF", 45, 0);
+    ALLEGRO_FONT* font = al_load_font("./font/Act_Of_Rejection.ttf", 20, 0);
+    ALLEGRO_FONT* time = al_load_font("./font/DS-DIGIT.TTF", 45, 0);
 
     /* Carrega as imagens dos personagens e do cenario*/
-    ALLEGRO_BITMAP * ken = al_load_bitmap("./Ken.png");
-    ALLEGRO_BITMAP * ryu = al_load_bitmap ("./Ryu.png");
+    ALLEGRO_BITMAP * ken = al_load_bitmap("./images/Ken.png");
+    ALLEGRO_BITMAP * ryu = al_load_bitmap ("./images/Ryu.png");
 
-    ALLEGRO_BITMAP * scene = al_load_bitmap("./cenario.jpg");
-    ALLEGRO_BITMAP * logo = al_load_bitmap("StreetFighterArcTitle2.png");
-    ALLEGRO_BITMAP * menuBitmap = al_load_bitmap("./menuNovo.jpg");
+    ALLEGRO_BITMAP * scene = al_load_bitmap("./images/cenario.jpg");
+    ALLEGRO_BITMAP * logo = al_load_bitmap("./images/StreetFighterArcTitle2.png");
+    ALLEGRO_BITMAP * menuBitmap = al_load_bitmap("./images/menuNovo.jpg");
 	ALLEGRO_BITMAP * rounds[ROUNDS];
 
     /* Imagem para definir qual eh o round atual que esta sendo jogado */
-	rounds[0] = al_load_bitmap("./rounds1.png");
-	rounds[1] = al_load_bitmap("./rounds2.png");
-	rounds[2] = al_load_bitmap("./rounds3.png");
+	rounds[0] = al_load_bitmap("./images/rounds1.png");
+	rounds[1] = al_load_bitmap("./images/rounds2.png");
+	rounds[2] = al_load_bitmap("./images/rounds3.png");
 
 	ALLEGRO_KEYBOARD_STATE keystate;
     ALLEGRO_EVENT_QUEUE * event_queue = al_create_event_queue();
@@ -66,82 +66,78 @@ int main () {
 
     ALLEGRO_EVENT event;
 	al_start_timer(timer);	
-    while (1) {
-		al_wait_for_event(event_queue, &event);	
+while (1) {
+    al_wait_for_event(event_queue, &event);    
 
-		if (!game_on) {
-			menu (font, menuBitmap, logo);
-			fighter = choose_character (font); 
-			if (fighter == 'R' || fighter == 'r')   {
-                /*  
-                    Trocar funcao
-                    trocar tamanho da imagem de fundo
-                */
-				player1 = create_character (ryu, 70, 80, 200, 300, 1000, 1000, 80, 0);
-				player2 = create_character (ken, 70, 80, 600, 300, 1000, 1000, 80, 1);
-			}
-			else {
-				player1 = create_character (ken, 70, 80, 200, 420, 1000, 1000, 80, 0);
-				player2 = create_character (ryu, 70 ,80, 600, 420, 1000, 1000, 80, 1);
-			}
-			game_on = 1;
-            clear_event_queue (event_queue);
-		}		
-
-		if (event.type == ALLEGRO_EVENT_TIMER) {
-			hp = update_position(player1, player2);									//O evento tipo 30 indica um evento de relógio, ou seja, verificação se a tela deve ser atualizada (conceito de FPS)			
-			remove_life (player1, player2, hp);
-			//al_clear_to_color(al_map_rgb (0,0,0));
-			print_scene (player1, player2, scene, font, rounds);
-			print_character (player1, player2);
-            print_time (time, &timming, &fps);                
-		}	
-
-		if (end_round (player1, player2, &timming)) {
-			check_winner (player1, player2);
-			reset_character (player1, player2);
-            clear_event_queue (event_queue);
-            al_rest (1.5);   
-            timming = CLOCK;         
-		}
-
-		if (has_winner_match (font, player1, player2)) {
-            game_on = 0; 
-            timming = CLOCK;          
-            print_winner(font, player1, player2);
-            al_flip_display();
-            al_rest (4.0);
+    if (!game_on) {
+        menu(font, menuBitmap, logo);
+        fighter = choose_character(font); 
+        if (fighter == 'R' || fighter == 'r') {
+            player1 = create_character(ryu, 70, 80, 200, 300, 1000, 1000, 80, 0);
+            player2 = create_character(ken, 70, 80, 600, 300, 1000, 1000, 80, 1);
+        } else {
+            player1 = create_character(ken, 70, 80, 200, 420, 1000, 1000, 80, 0);
+            player2 = create_character(ryu, 70, 80, 600, 420, 1000, 1000, 80, 1);
         }
-
-	    if ((event.type == ALLEGRO_EVENT_KEY_DOWN) || (event.type == ALLEGRO_EVENT_KEY_UP)){																																				//Verifica se o evento é de botão do teclado abaixado ou levantado (!)
-			if (event.keyboard.keycode == ALLEGRO_KEY_A)          joystick_left(player1->joystick);																														//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_D)     joystick_right(player1->joystick);																													//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação à direita) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_W)     joystick_up(player1->joystick);																														//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_S )    joystick_down(player1->joystick);	
-			else if (event.keyboard.keycode == ALLEGRO_KEY_X)     joystick_push(player1->joystick);																														//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_C)     joystick_kick(player1->joystick);																												//Indica o evento correspondente no joystick do primeiro jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)  joystick_left(player2->joystick);																													//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação à esquerda) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->joystick);																													//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação à direita) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_UP)    joystick_up(player2->joystick);																														//Indica o evento correspondente no joystick do segundo jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN)  joystick_down(player2->joystick);																													//Indica o evento correspondente no controle do segundo jogador (botão de movimentação para baixo) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_DELETE)     joystick_push(player2->joystick);																														//Indica o evento correspondente no jo do primeiro jogador (botão de movimentação para cima) (!)
-			else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0)     joystick_kick(player2->joystick);
-            
-		}
-	    else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;																																                                    	//Evento de clique no "X" de fechamento da tela. Encerra o programa graciosamente.               
-        if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) {
-            game_paused (font);
-            clear_event_queue(event_queue);
-        }
-
-        fps++;
-        default_position (player1, player2);
-		al_flip_display();        
+        game_on = 1;
+        clear_event_queue(event_queue);
     }
+
+    if (event.type == ALLEGRO_EVENT_TIMER) {
+        fps++;
+        hp = update_position(player1, player2);
+        remove_life(player1, player2, hp);
+        print_scene(player1, player2, scene, font, rounds);
+        print_character(player1, player2);
+        print_time(time, &timming, &fps);                
+        default_position(player1, player2);
+        al_flip_display();        
+    }    
+
+    if (event.type == ALLEGRO_EVENT_KEY_DOWN || event.type == ALLEGRO_EVENT_KEY_UP) {
+        if (event.keyboard.keycode == ALLEGRO_KEY_A) joystick_left(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_D) joystick_right(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_W) joystick_up(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_S) joystick_down(player1->joystick);    
+        else if (event.keyboard.keycode == ALLEGRO_KEY_X) joystick_push(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_C) joystick_kick(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT) joystick_left(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_UP) joystick_up(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN) joystick_down(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_DELETE) joystick_push(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0) joystick_kick(player2->joystick);            
+    }
+
+    if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
+        break;
+    }                                                                                                                               
+
+    if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) {
+        game_paused(font);
+        clear_event_queue(event_queue);
+    }
+
+    if (end_round(player1, player2, &timming)) {
+        check_winner(player1, player2);
+        reset_character(player1, player2);
+        clear_event_queue(event_queue);
+        al_rest(1.5);   
+        timming = CLOCK;         
+    }
+
+    if (has_winner_match(font, player1, player2)) {
+        game_on = 0; 
+        timming = CLOCK;          
+        print_winner(font, player1, player2);
+        al_flip_display();
+        al_rest(4.0);
+    }
+}
+
 
     /* Destruir tudo*/
     clear_event_queue (event_queue);
-
     al_destroy_event_queue(event_queue);
     al_destroy_display (display);
     al_destroy_timer(timer);
@@ -151,14 +147,12 @@ int main () {
     destroy_character (player1);
     destroy_character (player2);
     al_destroy_bitmap (scene);
-    //al_destroy_bitmap (ken);
-    //al_destroy_bitmap (ryu);
     al_destroy_bitmap (logo);
     al_destroy_bitmap (menuBitmap);    
     for (int i = 0; i < ROUNDS; i++)
         al_destroy_bitmap (rounds[i]);
     al_shutdown_primitives_addon(); // Finaliza o addon de primitivas
-    al_shutdown_image_addon();
-    al_shutdown_font_addon();
+    /*al_shutdown_image_addon();
+    al_shutdown_font_addon();*/
 	return 0;
 }
