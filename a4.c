@@ -91,6 +91,7 @@ while (1) {
         print_character(player1, player2);
         print_time(time, &timming, &fps);                
         default_position(player1, player2);
+        rotate_position (player1, player2);
         al_flip_display();        
     }    
 
@@ -98,7 +99,7 @@ while (1) {
         if (event.keyboard.keycode == ALLEGRO_KEY_A) joystick_left(player1->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_D) joystick_right(player1->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_W) joystick_up(player1->joystick);
-        else if (event.keyboard.keycode == ALLEGRO_KEY_S) joystick_down(player1->joystick);    
+        else if (event.keyboard.keycode == ALLEGRO_KEY_S) joystick_down(player1->joystick);            
         else if (event.keyboard.keycode == ALLEGRO_KEY_X) joystick_push(player1->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_C) joystick_kick(player1->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT) joystick_left(player2->joystick);
@@ -108,6 +109,7 @@ while (1) {
         else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_DELETE) joystick_push(player2->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0) joystick_kick(player2->joystick);            
     }
+
 
     if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
         break;

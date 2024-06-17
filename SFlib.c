@@ -51,24 +51,10 @@ void destroy_character (struct character_t *player) {
     free (player);
 }
 
-/* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
-void apply_gravity (struct character_t *player) {
-    if (player->jump) {
-        if (player->y_display <= 100 && player->vel_y < 0) {
-            player->vel_y = -player->vel_y;                                                                      // Inverte a direção do movimento caso ele alcance a altura limite
-        } 
-		else {
-            player->vel_y += GRAVITY;                                                                           // Aplica a gravidade (Diminui a altura do salto até encostar no chao)
-            player->maxFrame = 7;                                                                               // Informações sobre o frame correto da spritesheet 
-            player->currentFrame = player->currentFrame * 8;	
-        }
-    }
-}
-
 /* Verifica se houve colisao entre personagens (sem ataque) */
 int collision (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display + p1->side/2 > p2->x_display && 
+	if (p1->jump == 0 && p2->jump == 0 && p1->x_display + p1->side/2 > p2->x_display && 
         p1->x_display < p2->x_display + p2->side/2) 
         return 1;
 	else 
@@ -84,21 +70,28 @@ int collision_hit (struct character_t *p1, struct character_t *p2) {
 	else return 0;
 }
 
-/* Atualiza a posicao do jogador, caso ele esteja pulando*/
-void update_position_jump (struct character_t *player) {
-    player->y_display += player->vel_y;
-    
-    if (player->y_display >= GROUND_LEVEL) {  // Caso o jogador encoste no chão, ele atualiza os parametros para o pulo ser falso
-        player->y_display = GROUND_LEVEL;
-        player->vel_y = 0;
-        player->jump = 0;
+void rotate_position(struct character_t *p1, struct character_t *p2) {
+    // Verifica se p1 está no nível do chão e se p1 passou por p2
+    if (((p1->x_display > p2->x_display) && 
+        (p2->x_display < p1->x_display)) ||
+        ((p2->x_display < p1->x_display ) && 
+        (p1->x_display > p2->x_display ))) {
+        
+        // Alterna a direção de ambos os personagens
+        p1->direction = 1;
+        p2->direction = 0;
+    } else {
+        p1->direction = 0;
+        p2->direction = 1;
     }
 }
+
+
 
 /* Apos realizar movimentacoes, o personagem retorna para a posicao padrao */
 void default_position (struct character_t *player1, struct character_t *player2) {
     if (!player1 || !player2) return;
-
+            
     player1->maxFrame = 4;
     player1->currentFrame = 80;
     player1->y_display = 420;
@@ -117,7 +110,31 @@ void default_joystick (struct character_t *player) {
     player->joystick->up = 0;
     player->joystick->kick = 0;
     player->joystick->push = 0;
+}
 
+/* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
+void apply_gravity (struct character_t *player) {
+    if (player->jump) {
+        if (player->y_display <= 100 && player->vel_y < 0) {
+            player->vel_y = 0;                                                                      // Inverte a direção do movimento caso ele alcance a altura limite
+        } 
+		else {
+            player->vel_y += GRAVITY;                                                                           // Aplica a gravidade (Diminui a altura do salto até encostar no chao)
+            player->maxFrame = 7;                                                                               // Informações sobre o frame correto da spritesheet 
+            player->currentFrame = player->currentFrame * 8;	
+        }
+    }
+}
+
+/* Atualiza a posicao do jogador, caso ele esteja pulando*/
+void update_position_jump (struct character_t *player) {
+    player->y_display += player->vel_y;
+    
+    if (player->y_display >= GROUND_LEVEL) {  // Caso o jogador encoste no chão, ele atualiza os parametros para o pulo ser falso
+        player->y_display = GROUND_LEVEL;
+        player->vel_y = 0;
+        player->jump = 0;
+    }
 }
 
 /* Funcao responsavel por implementar o pulo do personagem*/
@@ -165,19 +182,19 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 		}			
 	}	
 	else if (trajectory == PUSH){  
-		if (element->y_display + steps*STEP) {                                //Verifica se a movimentação para o soco é desejada e possível; se sim, efetiva a mesma			
+		if (element->y_display + steps*STEP) {                                //Verifica se a movimentação para o soco é desejada e possível; se sim, efetiva a mesma			            
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 2;
 				element->maxFrame = 3;			
-			}			
+			}           
 		}			
 	}	
 	else if (trajectory == KICK){ 
 		if ((element->y_display + steps*STEP) ) {                           //Verifica se a movimentação para o chute é desejada e possível; se sim, efetiva a mesma			
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 6;
-				element->maxFrame = 5;	
-			}			
+				element->maxFrame = 5;                
+            }		          
 		}			
 	}	
 }
@@ -190,11 +207,11 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     update_position_jump (player1);
     update_position_jump (player2);
 
-    if (player1->joystick->left && !player1->joystick->down && !player1->joystick->right) {
+    if (player1->joystick->left && !player1->joystick->down && !player1->joystick->right && !player1->joystick->push) {
         character_move (player1, 1, 0, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player1, -1, 0, X_SCREEN, Y_SCREEN);
     }
-    if (player1->joystick->right && !player1->joystick->down && !player1->joystick->left) {
+    if (player1->joystick->right && !player1->joystick->down && !player1->joystick->left && !player1->joystick->push) {
         character_move (player1, 1, 1, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player1, -1, 1, X_SCREEN, Y_SCREEN);
     }
@@ -202,14 +219,13 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_jump (player1);		
     }
     if (player1->joystick->down) {
-        character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);
-        //if (collision (player1, player2)) character_move (player1, -1, 3, X_SCREEN, Y_SCREEN);
+        character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);        
     }
     if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
         character_move (player1, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 2;        
     }
-    if (player1->joystick->kick && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
+    if (player1->joystick->kick && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right && !player1->joystick->push) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }

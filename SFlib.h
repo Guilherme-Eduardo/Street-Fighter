@@ -79,6 +79,7 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 void print_time (ALLEGRO_FONT*font, int *num, int *fps);
 
 void print_character(struct character_t *player1, struct character_t *player2);
+void rotate_position (struct character_t *player1, struct character_t *player2);
 
 
 #endif
