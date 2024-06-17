@@ -53,14 +53,13 @@ void destroy_character (struct character_t *player) {
     free (player);
 }
 
-/* Verifica se houve colisao entre personagens (sem ataque) */
+/* Verifica se houve colisao entre personagens (sem ataque e no solo) */
 int collision (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
 	if (p1->jump == 0 && p2->jump == 0 && p1->x_display + p1->side/2 > p2->x_display && 
         p1->x_display < p2->x_display + p2->side/2) 
         return 1;
-	else 
-    return 0;
+	else return 0;
 }
 
 /* Verifica se houve colisao entre os personagem quando ocorre um ataque */
@@ -72,10 +71,10 @@ int collision_hit (struct character_t *p1, struct character_t *p2) {
 	else return 0;
 }
 
+/* Verifica se p1 está no nível do chão e se p1 passou por p2*/
 void rotate_position(struct character_t *p1, struct character_t *p2) {
-    // Verifica se p1 está no nível do chão e se p1 passou por p2
     if (((p1->x_display > p2->x_display) && (p2->x_display < p1->x_display)) ||
-        ((p2->x_display < p1->x_display ) && (p1->x_display > p2->x_display ))) {   // Alterna a direção de ambos os personagens       
+        ((p2->x_display < p1->x_display ) && (p1->x_display > p2->x_display ))) {                               // Alterna a direção de ambos os personagens       
       
         p1->direction = 1;
         p2->direction = 0;
@@ -86,7 +85,7 @@ void rotate_position(struct character_t *p1, struct character_t *p2) {
     }
 }
 
-/* Apos realizar movimentacoes, o personagem retorna para a posicao padrao */
+/* Apos realizar movimentacoes, o personagem retorna para a posicao padrao (posição standard/default) */
 void default_position (struct character_t *player1, struct character_t *player2) {
     if (!player1 || !player2) return;   
 
@@ -100,6 +99,7 @@ void default_position (struct character_t *player1, struct character_t *player2)
      
 }
 
+/* zera as variaveis do joystick*/
 void default_joystick (struct character_t *player) {
     if (!player) return;
 
@@ -115,10 +115,10 @@ void default_joystick (struct character_t *player) {
 void apply_gravity (struct character_t *player) {
     if (player->jump) {
         if (player->y_display <= 100 && player->vel_y < 0) {
-            player->vel_y = 0;                                                                      // Inverte a direção do movimento caso ele alcance a altura limite
+            player->vel_y = 0;                                                                                   // Inverte a direção do movimento caso ele alcance a altura limite
         } 
 		else {
-            player->vel_y += GRAVITY;                                                                           // Aplica a gravidade (Diminui a altura do salto até encostar no chao)
+            player->vel_y += GRAVITY;                                                                           // Aplica a gravidade na variavel "vel" que será usada para somar com o eixo y do personagem (Diminui a altura do salto até encostar no chao)
             player->maxFrame = 7;                                                                               // Informações sobre o frame correto da spritesheet 
             player->currentFrame = player->currentFrame * 8;	
         }
@@ -127,9 +127,9 @@ void apply_gravity (struct character_t *player) {
 
 /* Atualiza a posicao do jogador, caso ele esteja pulando*/
 void update_position_jump (struct character_t *player) {
-    player->y_display += player->vel_y;
+    player->y_display += player->vel_y;                                                                         //gravidade aplicada no personagem
     
-    if (player->y_display >= GROUND_LEVEL) {  // Caso o jogador encoste no chão, ele atualiza os parametros para o pulo ser falso
+    if (player->y_display >= GROUND_LEVEL) {                                                                    // Caso o jogador encoste no chão, ele atualiza os parametros para o pulo ser falso
         player->y_display = GROUND_LEVEL;
         player->vel_y = 0;
         player->jump = 0;
@@ -144,7 +144,8 @@ void character_jump (struct character_t *player) {
     }
 }
 
-void character_move (struct character_t *element, char steps, unsigned char trajectory, unsigned short max_x, unsigned short max_y) {
+void character_move (struct character_t *element, char steps, unsigned char trajectory, 
+                    unsigned short max_x, unsigned short max_y) {
 
 	if (trajectory == LEFT){ 
 		if ((element->x_display - steps * STEP) + element->side / 2 >= 0) {
@@ -167,41 +168,31 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 		}
 	}	
 	else if (trajectory == UP){ 
-		if ((element->y_display - steps*STEP) - element->side >= 0) {           //Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma						
+		if ((element->y_display - steps * STEP) - element->side >= 0) {           //Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma						
 			element->maxFrame = 7;
 			element->currentFrame = element->currentFrame * 8;						
             element->frame = 0;			
 		}			
 	}
 	else if (trajectory == DOWN){ 
-		if ((element->y_display + steps*STEP) + element->side/2 <= max_y ) {			
-			if (steps > 0 && element->jump == 0 ) {                            //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
+		if ((element->y_display + steps * STEP) + element->side/2 <= max_y ) {			
+			if (element->jump == 0 ) {                                           //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
 				element->currentFrame = element->currentFrame * 9;
 				element->maxFrame = 1;	
                 element->frame = 0;		
 			}			
 		}			
 	}	
-	else if (trajectory == PUSH){  
-		if (element->y_display + steps*STEP) {                                //Verifica se a movimentação para o soco é desejada e possível; se sim, efetiva a mesma			            
-			if (steps > 0 && element->jump == 0 && !element->push) {
-				/*element->currentFrame = element->currentFrame * 2;
-				element->maxFrame = 3;			*/
-                element->push = 1;
-                element->frame = 0;
-			}           
-		}			
+	else if (trajectory == PUSH){                                                // Verifica se a movimentação do soco
+        if (element->jump == 0 && !element->push) {
+            element->push = 1;
+            element->frame = 0;
+        }           
+					
 	}	
-	else if (trajectory == KICK){ 
-		if ((element->y_display + steps*STEP) ) {                           //Verifica se a movimentação para o chute é desejada e possível; se sim, efetiva a mesma			
-			if (steps > 0 && element->jump == 0) {
-				/*element->currentFrame = element->currentFrame * 6;
-				element->maxFrame = 5;*/   
-                element->kick = 1;   
-                //element->frame = 0;          
-                
-            }		          
-		}			
+	else if (trajectory == KICK && element->jump == 0 && !element->kick) {	    //verifica a movimentação do chute		
+        element->kick = 1;		
+        element->frame = 1;		
 	}	
 }
 
@@ -235,11 +226,11 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
-    if (player2->joystick->left && !player2->joystick->down && !player2->joystick->right) {
+    if (player2->joystick->left && !player2->joystick->down && !player2->joystick->right && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 0, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player2, -1, 0, X_SCREEN, Y_SCREEN);
     }
-    if (player2->joystick->right && !player2->joystick->down && !player2->joystick->left) {
+    if (player2->joystick->right && !player2->joystick->down && !player2->joystick->left && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 1, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player2, -1, 1, X_SCREEN, Y_SCREEN);
     }
@@ -377,7 +368,7 @@ void reset_character (struct character_t *player1, struct character_t *player2) 
 	player1->life = 360;
 	player2->life = 360;
 
-    //Posicionamento no cenario
+    //Posicionamento no cenario para a proxima rodada
 	player1->x_display = 200;
 	player2->x_display = 400;
 }
@@ -431,10 +422,6 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
         player2->maxFrame = 2;
         player2->frame = 0;
     }
-    
-    /*al_draw_scaled_bitmap(player1->fighter, player1->x_sprite * (int)(player1->frame), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 150, 150, player1->direction);
-    al_draw_scaled_bitmap(player2->fighter, player2->x_sprite * (int)(player2->frame), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 150, 150, player2->direction);        
-    al_flip_display();*/
 }
 
 /* Imprime o cenario / background */
@@ -443,6 +430,7 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_draw_bitmap(scene, 0, 0, 0);
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
 
+    /*Imprime os retangulos de HP*/
 	al_draw_filled_rectangle (5, 5, 375, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (10, 10, 10 + player1->life, 60, red);
 	al_draw_filled_rectangle (425, 5, 795, 65, al_map_rgb(255, 218, 185));
@@ -451,6 +439,7 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
 	al_draw_text(font, al_map_rgb(0,0,0), 720, 20, 0, "player2");
 
+    /*Imprime o simbolo para identificar a quantidade de vitoria de round do player*/
 	al_draw_filled_circle(340, 80, 10, al_map_rgb(0, 0, 0));
 	al_draw_filled_circle(360, 80, 10, al_map_rgb(0, 0, 0));
 
@@ -488,10 +477,8 @@ void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
 
 /* Imprime os personagem na tela conforme o frame atual */
 void print_character(struct character_t *player) {
-    player->frame += 0.3f;
 
-   
-
+    
     if (player->frame > player->maxFrame) {
         player->frame -= player->maxFrame; 
         if (player->kick) player->kick = 0;
@@ -509,6 +496,6 @@ void print_character(struct character_t *player) {
         player->maxFrame = 3;
 
     } 
-    al_draw_scaled_bitmap(player->fighter, player->x_sprite * (int)(player->frame), player->currentFrame, player->x_sprite, player->y_sprite, player->x_display, player->y_display, 150, 150, player->direction);
-   
+    al_draw_scaled_bitmap(player->fighter, player->x_sprite * (int)(player->frame), player->currentFrame, player->x_sprite, player->y_sprite, player->x_display, player->y_display, 150, 150, player->direction);   
+    player->frame += 0.3f;
 }
