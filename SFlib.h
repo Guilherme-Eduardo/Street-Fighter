@@ -24,7 +24,9 @@ struct character_t {
     int rounds_won;
     float vel_y;
 	float vel_x;
-    int jump;	
+    int jump;
+    int kick;
+    int push;	
     float frame;
     int direction;
     struct joystick_t *joystick;
@@ -78,7 +80,8 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 
 void print_time (ALLEGRO_FONT*font, int *num, int *fps);
 
-void print_character(struct character_t *player1, struct character_t *player2);
+void print_character(struct character_t *player);
+
 void rotate_position (struct character_t *player1, struct character_t *player2);
 
 

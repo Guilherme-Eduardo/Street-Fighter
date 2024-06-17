@@ -36,7 +36,9 @@ struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, uns
     player->life = 360;
     player->rounds_won = 0;
     player->vel_y = 0;
-    player->jump = 0;	
+    player->jump = 0;
+    player->kick = 0; 
+    player->push = 0;   
     player->frame = 0.f;
     player->joystick = joystick_create();
     player->direction = direction;
@@ -72,33 +74,30 @@ int collision_hit (struct character_t *p1, struct character_t *p2) {
 
 void rotate_position(struct character_t *p1, struct character_t *p2) {
     // Verifica se p1 está no nível do chão e se p1 passou por p2
-    if (((p1->x_display > p2->x_display) && 
-        (p2->x_display < p1->x_display)) ||
-        ((p2->x_display < p1->x_display ) && 
-        (p1->x_display > p2->x_display ))) {
-        
-        // Alterna a direção de ambos os personagens
+    if (((p1->x_display > p2->x_display) && (p2->x_display < p1->x_display)) ||
+        ((p2->x_display < p1->x_display ) && (p1->x_display > p2->x_display ))) {   // Alterna a direção de ambos os personagens       
+      
         p1->direction = 1;
         p2->direction = 0;
-    } else {
+    } 
+    else {
         p1->direction = 0;
         p2->direction = 1;
     }
 }
 
-
-
 /* Apos realizar movimentacoes, o personagem retorna para a posicao padrao */
 void default_position (struct character_t *player1, struct character_t *player2) {
-    if (!player1 || !player2) return;
-            
+    if (!player1 || !player2) return;   
+
     player1->maxFrame = 4;
     player1->currentFrame = 80;
-    player1->y_display = 420;
+    player1->y_display = 420;    
 
     player2->maxFrame = 4;
     player2->currentFrame = 80;
     player2->y_display = 420;
+     
 }
 
 void default_joystick (struct character_t *player) {
@@ -148,11 +147,12 @@ void character_jump (struct character_t *player) {
 void character_move (struct character_t *element, char steps, unsigned char trajectory, unsigned short max_x, unsigned short max_y) {
 
 	if (trajectory == LEFT){ 
-		if ((element->x_display - steps * STEP) + element->side/2 >= 0) {
+		if ((element->x_display - steps * STEP) + element->side / 2 >= 0) {
 			element->x_display = element->x_display - steps*STEP;  				//Verifica se a movimentação para a esquerda é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
-				element->maxFrame = 5;			
+				element->maxFrame = 5;		
+                
 			}			
 		}
 	}
@@ -162,12 +162,12 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
 				element->maxFrame = 5;
+                
 			}			
 		}
 	}	
 	else if (trajectory == UP){ 
-		if ((element->y_display - steps*STEP) - element->side >= 0) {           //Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma			
-			element->x_sprite = 70;
+		if ((element->y_display - steps*STEP) - element->side >= 0) {           //Verifica se a movimentação para cima é desejada e possível; se sim, efetiva a mesma						
 			element->maxFrame = 7;
 			element->currentFrame = element->currentFrame * 8;						
             element->frame = 0;			
@@ -177,23 +177,29 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 		if ((element->y_display + steps*STEP) + element->side/2 <= max_y ) {			
 			if (steps > 0 && element->jump == 0 ) {                            //Verifica se a movimentação para baixo é desejada e possível; se sim, efetiva a mesma
 				element->currentFrame = element->currentFrame * 9;
-				element->maxFrame = 1;			
+				element->maxFrame = 1;	
+                element->frame = 0;		
 			}			
 		}			
 	}	
 	else if (trajectory == PUSH){  
 		if (element->y_display + steps*STEP) {                                //Verifica se a movimentação para o soco é desejada e possível; se sim, efetiva a mesma			            
-			if (steps > 0 && element->jump == 0) {
-				element->currentFrame = element->currentFrame * 2;
-				element->maxFrame = 3;			
+			if (steps > 0 && element->jump == 0 && !element->push) {
+				/*element->currentFrame = element->currentFrame * 2;
+				element->maxFrame = 3;			*/
+                element->push = 1;
+                element->frame = 0;
 			}           
 		}			
 	}	
 	else if (trajectory == KICK){ 
 		if ((element->y_display + steps*STEP) ) {                           //Verifica se a movimentação para o chute é desejada e possível; se sim, efetiva a mesma			
 			if (steps > 0 && element->jump == 0) {
-				element->currentFrame = element->currentFrame * 6;
-				element->maxFrame = 5;                
+				/*element->currentFrame = element->currentFrame * 6;
+				element->maxFrame = 5;*/   
+                element->kick = 1;   
+                //element->frame = 0;          
+                
             }		          
 		}			
 	}	
@@ -207,11 +213,11 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     update_position_jump (player1);
     update_position_jump (player2);
 
-    if (player1->joystick->left && !player1->joystick->down && !player1->joystick->right && !player1->joystick->push) {
+    if (player1->joystick->left && !player1->joystick->down && !player1->joystick->right && player1->push == 0 && player1->kick == 0) {
         character_move (player1, 1, 0, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player1, -1, 0, X_SCREEN, Y_SCREEN);
     }
-    if (player1->joystick->right && !player1->joystick->down && !player1->joystick->left && !player1->joystick->push) {
+    if (player1->joystick->right && !player1->joystick->down && !player1->joystick->left && player1->push == 0 && player1->kick == 0) {
         character_move (player1, 1, 1, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player1, -1, 1, X_SCREEN, Y_SCREEN);
     }
@@ -251,6 +257,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;       
     }
+  
     return 0;
 }
 
@@ -317,8 +324,8 @@ void game_paused (ALLEGRO_FONT *font) {
         if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_P) // Verifica se a tecla P foi pressionada para retomar o jogo
             pause = 0; // Define que o jogo não está mais pausado
                 
-        al_draw_text(font, al_map_rgb(0, 0, 0), 530, 330, 0, "PAUSE");
-        al_draw_text(font, al_map_rgb(255, 255, 255), 530, 325, 0, "PAUSE");
+        al_draw_text(font, al_map_rgb(0, 0, 0), 350, 330, 0, "PAUSE");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 350, 325, 0, "PAUSE");
         al_flip_display();
     } 
     clear_event_queue (event_queue);
@@ -384,12 +391,12 @@ int has_winner_match (ALLEGRO_FONT *font, struct character_t *player1, struct ch
 /* Imprime a mensagem de qual jogador venceu o jogo */
 void print_winner (ALLEGRO_FONT *font, struct character_t *player1, struct character_t *player2) {
 	if (player1->rounds_won >=2) {
-        al_draw_text(font, al_map_rgb(0,0,0), 530, 330, 0, "Player 1 venceu o jogo!");
-        al_draw_text(font, al_map_rgb(255,255,255), 530, 325, 0, "Player 1 venceu o jogo!");
+        al_draw_text(font, al_map_rgb(0,0,0), 330, 330, 0, "Player 1 venceu o jogo!");
+        al_draw_text(font, al_map_rgb(255,255,255), 330, 325, 0, "Player 1 venceu o jogo!");
     }    
     else {
-        al_draw_text(font, al_map_rgb(0,0,0), 530, 330, 0, "Player 2 venceu o jogo!");
-        al_draw_text(font, al_map_rgb(255,255,255), 530, 325, 0, "Player 2 venceu o jogo!");
+        al_draw_text(font, al_map_rgb(0,0,0), 330, 330, 0, "Player 2 venceu o jogo!");
+        al_draw_text(font, al_map_rgb(255,255,255), 330, 325, 0, "Player 2 venceu o jogo!");
     }
 }
 
@@ -414,17 +421,20 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
 	if (jogador == 1 && player1->joystick->down == 0) {
         player1->life -= 5;
         player1->currentFrame = player1->currentFrame * 10;
-        player1->maxFrame = 1;
+        player1->maxFrame = 2;
         player1->frame = 0;
 
     }
 	else if (jogador == 2 && player2->joystick->down == 0) {
         player2->life -= 5;
         player2->currentFrame = player2->currentFrame * 10;
-        player2->maxFrame = 1;
+        player2->maxFrame = 2;
         player2->frame = 0;
-
     }
+    
+    /*al_draw_scaled_bitmap(player1->fighter, player1->x_sprite * (int)(player1->frame), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 150, 150, player1->direction);
+    al_draw_scaled_bitmap(player2->fighter, player2->x_sprite * (int)(player2->frame), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 150, 150, player2->direction);        
+    al_flip_display();*/
 }
 
 /* Imprime o cenario / background */
@@ -477,20 +487,28 @@ void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
 }
 
 /* Imprime os personagem na tela conforme o frame atual */
-void print_character(struct character_t *player1, struct character_t *player2) {
-    player1->frame += 0.3f;
-    player2->frame += 0.3f;
+void print_character(struct character_t *player) {
+    player->frame += 0.3f;
 
-    if (player1->frame > player1->maxFrame)
-        player1->frame -= player1->maxFrame;    
+   
 
-    if (player2->frame > player2->maxFrame) 
-        player2->frame -= player2->maxFrame;
+    if (player->frame > player->maxFrame) {
+        player->frame -= player->maxFrame; 
+        if (player->kick) player->kick = 0;
+        if (player->push) player->push = 0;
+    }   
     
-    if (player1->frame > 6 && player1->jump) player1->frame = 5;
+    if (player->frame > 6 && player->jump) player->frame = 5;
 
-    if (player2->frame > 6 && player2->jump) player2->frame = 5;
+    if (player->kick) {
+        player->currentFrame = player->currentFrame * 6;
+        player->maxFrame = 5;        
+    }
+    else if (player->push) {
+        player->currentFrame = player->currentFrame * 2;
+        player->maxFrame = 3;
 
-    al_draw_scaled_bitmap(player1->fighter, player1->x_sprite * (int)(player1->frame), player1->currentFrame, player1->x_sprite, player1->y_sprite, player1->x_display, player1->y_display, 150, 150, player1->direction);
-    al_draw_scaled_bitmap(player2->fighter, player2->x_sprite * (int)(player2->frame), player2->currentFrame, player2->x_sprite, player2->y_sprite, player2->x_display, player2->y_display, 150, 150, player2->direction);    
+    } 
+    al_draw_scaled_bitmap(player->fighter, player->x_sprite * (int)(player->frame), player->currentFrame, player->x_sprite, player->y_sprite, player->x_display, player->y_display, 150, 150, player->direction);
+   
 }

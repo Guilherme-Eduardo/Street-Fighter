@@ -86,10 +86,11 @@ while (1) {
     if (event.type == ALLEGRO_EVENT_TIMER) {
         fps++;
         hp = update_position(player1, player2);
-        remove_life(player1, player2, hp);
         print_scene(player1, player2, scene, font, rounds);
-        print_character(player1, player2);
-        print_time(time, &timming, &fps);                
+        remove_life(player1, player2, hp);
+        print_character(player1);
+        print_character(player2);
+        print_time(time, &timming, &fps);
         default_position(player1, player2);
         rotate_position (player1, player2);
         al_flip_display();        
