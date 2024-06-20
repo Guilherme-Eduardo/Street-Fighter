@@ -6,7 +6,7 @@
 #define Y_SCREEN 600    
 #define MAX_FRAME 4
 #define ROUNDS 3
-#define GRAVITY 5.0
+#define GRAVITY 7.5
 #define JUMP_STRENGTH -250
 #define GROUND_LEVEL 420
 #define CLOCK 90
@@ -56,9 +56,11 @@ void destroy_character (struct character_t *player) {
 /* Verifica se houve colisao entre personagens (sem ataque e no solo) */
 int collision (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->jump == 0 && p2->jump == 0 && p1->x_display + p1->side/2 > p2->x_display && 
-        p1->x_display < p2->x_display + p2->side/2) 
+	if ((p1->x_display + p1->side/2 > p2->x_display && 
+        p1->x_display < p2->x_display + p2->side/2) &&
+        (p1->y_display >= 300 && p2->y_display >= 300)) {            
         return 1;
+        }
 	else return 0;
 }
 
@@ -97,6 +99,8 @@ void default_position (struct character_t *player1, struct character_t *player2)
     player2->currentFrame = 80;
     player2->y_display = 420;
      
+     if (collision(player1, player2))
+        player1->x_display -= 5;
 }
 
 /* zera as variaveis do joystick*/
@@ -261,7 +265,7 @@ void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue) {
 }
 
 /* Usuario decide entre qual personagem ele irá escolher para jogar*/
-char choose_character (ALLEGRO_FONT* font) {
+char choose_character (ALLEGRO_FONT* font, ALLEGRO_DISPLAY *display) {
     char letter = '\0';
     al_clear_to_color(al_map_rgb(0, 0, 0));
     ALLEGRO_BITMAP *fundoMenu = al_load_bitmap("./images/fundoMenuPrincipal.jpg");
@@ -269,14 +273,16 @@ char choose_character (ALLEGRO_FONT* font) {
     ALLEGRO_BITMAP *ken = al_load_bitmap("./images/SelecionaKen.png");
     al_draw_bitmap (fundoMenu, 0, 0, 0);
     al_draw_text (font, al_map_rgb(255,255,255), 300, 50, 0, "Player 1: SELECT THE CHARACTER");
+    al_draw_text (font, al_map_rgb(255,255,255), 300, 80, 0, "Press K for Ken or R for Ryu");
     
     al_draw_scaled_bitmap(ryu, 0, 0, 736 ,1233, 100, 180, 300, 300, 0);                     
     al_draw_scaled_bitmap(ken, 0, 0, 736 ,1233, 500, 180, 300, 300, 0);                     
     al_flip_display ();
     
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
-    al_register_event_source (event_queue, al_get_keyboard_event_source());
 	ALLEGRO_EVENT event;
+    al_register_event_source (event_queue, al_get_keyboard_event_source());
+     al_register_event_source(event_queue, al_get_display_event_source(display));
     do {        
         al_wait_for_event (event_queue, &event);
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
@@ -325,7 +331,7 @@ void game_paused (ALLEGRO_FONT *font) {
 
 
 /* Menu principal do jogo. Usuario pode continuar a jogar ou quitar*/
-void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo) {
+void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo, ALLEGRO_DISPLAY *display) {
     al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(menuBitmap, 0, 0, 0);
     al_draw_bitmap(logo, 250, 150, 0);   
@@ -338,14 +344,12 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
     al_flip_display();
 
     ALLEGRO_EVENT_QUEUE * event_queue = al_create_event_queue();
-    al_register_event_source(event_queue, al_get_keyboard_event_source());
 	ALLEGRO_EVENT event;
+    al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_register_event_source(event_queue, al_get_display_event_source(display));
     while (1) {        
 
         al_wait_for_event (event_queue, &event);
-        if( event.type == 42 ){
-            exit(1);
-        }
 
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
             if (event.keyboard.keycode == ALLEGRO_KEY_ENTER) {
@@ -353,6 +357,9 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo)
             } else if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
                 exit(1);
             }             
+        }
+        if( event.type == 42 ){
+            exit(1);
         }
 
     }

@@ -55,13 +55,13 @@ int update_position (struct character_t *player1, struct character_t *player2);
 void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue);
 
 /*Seleção de jogadores na tela de menu*/
-char choose_character (ALLEGRO_FONT* font);
+char choose_character (ALLEGRO_FONT* font, ALLEGRO_DISPLAY *display);
 
 /* Pausa no jogo*/
 void game_paused (ALLEGRO_FONT *font);
 
 /*Menu inicial do jogo*/
-void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo);
+void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo, ALLEGRO_DISPLAY *display);
 
 /* Reseta os jogadores apos o fim de uma rodada */
 void reset_character (struct character_t *player1, struct character_t *player2) ;

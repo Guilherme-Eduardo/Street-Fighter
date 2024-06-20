@@ -70,8 +70,8 @@ while (1) {
     al_wait_for_event(event_queue, &event);    														//Função que captura eventos da fila, inserindo os mesmos na variável de eventos
 
     if (!game_on) {
-        menu(font, menuBitmap, logo);
-        fighter = choose_character(font); 
+        menu(font, menuBitmap, logo, display);
+        fighter = choose_character(font, display); 
         if (fighter == 'R' || fighter == 'r') {
             player1 = create_character(ryu, 70, 80, 200, 300, 1000, 1000, 80, 0);
             player2 = create_character(ken, 70, 80, 600, 300, 1000, 1000, 80, 1);
