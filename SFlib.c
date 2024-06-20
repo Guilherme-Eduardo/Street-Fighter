@@ -485,12 +485,14 @@ void print_time (ALLEGRO_FONT*font, int *num, int *fps) {
 /* Imprime os personagem na tela conforme o frame atual */
 void print_character(struct character_t *player) {
 
-    
-    if (player->frame > player->maxFrame) {
+    player->frame += 0.3f;
+
+    if (player->frame >= player->maxFrame) {
         player->frame -= player->maxFrame; 
         if (player->kick) player->kick = 0;
         if (player->push) player->push = 0;
     }   
+    
     
     if (player->frame > 6 && player->jump) player->frame = 5;
 
@@ -504,5 +506,4 @@ void print_character(struct character_t *player) {
 
     } 
     al_draw_scaled_bitmap(player->fighter, player->x_sprite * (int)(player->frame), player->currentFrame, player->x_sprite, player->y_sprite, player->x_display, player->y_display, 150, 150, player->direction);   
-    player->frame += 0.3f;
 }
