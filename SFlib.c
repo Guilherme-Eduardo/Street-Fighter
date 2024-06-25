@@ -87,6 +87,33 @@ void rotate_position(struct character_t *p1, struct character_t *p2) {
     }
 }
 
+/* zera as variaveis do joystick*/
+void default_joystick (struct character_t *player) {
+    if (!player) return;
+
+    player->joystick->down = 0;
+    player->joystick->right = 0;
+    player->joystick->left= 0;
+    player->joystick->up = 0;
+    player->joystick->kick = 0;
+    player->joystick->push = 0;
+}
+
+/* Reseta as configuracoes para o inicio de um novo round*/
+void reset_character (struct character_t *player1, struct character_t *player2) {
+
+    //Redefini a vida do jogador
+	player1->life = 360;
+	player2->life = 360;
+
+    //Posicionamento no cenario para a proxima rodada
+	player1->x_display = 200;
+	player2->x_display = 400;
+
+    default_joystick (player1);
+    default_joystick (player2);
+}
+
 /* Apos realizar movimentacoes, o personagem retorna para a posicao padrao (posição standard/default) */
 void default_position (struct character_t *player1, struct character_t *player2) {
     if (!player1 || !player2) return;   
@@ -101,18 +128,6 @@ void default_position (struct character_t *player1, struct character_t *player2)
      
      if (collision(player1, player2))
         player1->x_display -= 5;
-}
-
-/* zera as variaveis do joystick*/
-void default_joystick (struct character_t *player) {
-    if (!player) return;
-
-    player->joystick->down = 0;
-    player->joystick->right = 0;
-    player->joystick->left= 0;
-    player->joystick->up = 0;
-    player->joystick->kick = 0;
-    player->joystick->push = 0;
 }
 
 /* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
@@ -258,10 +273,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
 
 /* Limpa a fila de eventos do teclado. Usado quando o jogo/rodada são iniciados */
 void clear_event_queue(ALLEGRO_EVENT_QUEUE *queue) {
-    ALLEGRO_EVENT event;
-    while (!al_is_event_queue_empty(queue)) {
-        al_get_next_event(queue, &event);
-    }
+    al_flush_event_queue(queue);
 }
 
 /* Usuario decide entre qual personagem ele irá escolher para jogar*/
@@ -323,6 +335,30 @@ void game_paused (ALLEGRO_FONT *font) {
                 
         al_draw_text(font, al_map_rgb(0, 0, 0), 350, 330, 0, "PAUSE");
         al_draw_text(font, al_map_rgb(255, 255, 255), 350, 325, 0, "PAUSE");
+
+
+
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 100, 200, 0, "Player 1:");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 100, 195, 0, "player 1");
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 80, 250, 0, "Movement: A S D W");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 80, 245, 0, "Movement: A S D W");
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 90, 295, 0, "Attack: X - C");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 90, 290, 0, "Attack: X - C");
+
+
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 600, 200, 0, "Player 2:");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 600, 195, 0, "player 2");
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 580, 250, 0, "Movement: arrows");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 580, 245, 0,"Movement: arrows");
+
+        al_draw_text(font, al_map_rgb(0, 0, 0), 570, 295, 0, "Attack: PAD Zero - PAD DEL");
+        al_draw_text(font, al_map_rgb(255, 255, 255), 570, 290, 0, "Attack: PAD Zero - PAD DEL");
+
         al_flip_display();
     } 
     clear_event_queue (event_queue);
@@ -368,18 +404,6 @@ void menu (ALLEGRO_FONT* font, ALLEGRO_BITMAP* menuBitmap, ALLEGRO_BITMAP* logo,
 	al_clear_to_color (al_map_rgb(255,255,255));
 }
 
-/* Reseta as configuracoes para o inicio de um novo round*/
-void reset_character (struct character_t *player1, struct character_t *player2) {
-
-    //Redefini a vida do jogador
-	player1->life = 360;
-	player2->life = 360;
-
-    //Posicionamento no cenario para a proxima rodada
-	player1->x_display = 200;
-	player2->x_display = 400;
-}
-
 /* Verifica se ha um vencedor na partida. Nessario possuir 2 rounds vencidos */
 int has_winner_match (ALLEGRO_FONT *font, struct character_t *player1, struct character_t *player2) {
 	if (player1->rounds_won >=2 || player2->rounds_won >= 2) return 1; 
@@ -416,18 +440,18 @@ void check_winner (struct character_t *player1, struct character_t *player2) {
 
 /* Remove os pontos de vida do jogador dependendo da variavel 'jogador' */
 void remove_life (struct character_t *player1, struct character_t *player2, int jogador) {
-	if (jogador == 1 && player1->joystick->down == 0) {
+	if (jogador == 1 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0) {
         player1->life -= 5;
         player1->currentFrame = player1->currentFrame * 10;
-        player1->maxFrame = 2;
-        player1->frame = 0;
+        player1->maxFrame = 1;
+        //player1->frame = 0;
 
     }
-	else if (jogador == 2 && player2->joystick->down == 0) {
+	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0) {
         player2->life -= 5;
         player2->currentFrame = player2->currentFrame * 10;
-        player2->maxFrame = 2;
-        player2->frame = 0;
+        player2->maxFrame = 1;
+        //player2->frame = 0;
     }
 }
 
@@ -443,8 +467,13 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_draw_filled_rectangle (425, 5, 795, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (430, 10, 430 + player2->life, 60, red);
 
-	al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
+    al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
 	al_draw_text(font, al_map_rgb(0,0,0), 720, 20, 0, "player2");
+
+    al_draw_text(font, al_map_rgb(0,0,0), 600, 85, 0, "Press P for commands");
+    al_draw_text(font, al_map_rgb(255,255,255), 600, 80, 0, "Press P for commands");
+
+	//al_draw_text(font, al_map_rgb(0,0,0), 50, 600, 0, "Press P for commands");
 
     /*Imprime o simbolo para identificar a quantidade de vitoria de round do player*/
 	al_draw_filled_circle(340, 80, 10, al_map_rgb(0, 0, 0));

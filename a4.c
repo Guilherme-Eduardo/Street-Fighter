@@ -80,7 +80,8 @@ while (1) {
             player2 = create_character(ryu, 70, 80, 600, 420, 1000, 1000, 80, 1);
         }
         game_on = 1;
-        clear_event_queue(event_queue);
+        reset_character(player1, player2);
+        al_flush_event_queue(event_queue);
     }
 
     if (event.type == ALLEGRO_EVENT_TIMER) {
@@ -125,19 +126,21 @@ while (1) {
 
     /* Verifica se o round acabou*/
     if (end_round(player1, player2, &timming)) {
-        check_winner(player1, player2);
-        reset_character(player1, player2);
-        clear_event_queue(event_queue);
         al_rest(1.5);   
-        timming = CLOCK;       
+        check_winner(player1, player2);
+        clear_event_queue(event_queue);
+        reset_character(player1, player2);
+        timming = CLOCK;        
     }
+
     /* Verifica se a MD3 acabou*/
     if (has_winner_match(font, player1, player2)) {
         game_on = 0; 
         timming = CLOCK;          
         print_winner(font, player1, player2);
         al_flip_display();
-        al_rest(4.0);
+        al_flush_event_queue(event_queue);
+        al_rest(4.0);        
     }
 }
     /* Destroi os bitmaps e afins*/
