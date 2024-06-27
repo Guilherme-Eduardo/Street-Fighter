@@ -105,6 +105,7 @@ while (1) {
         else if (event.keyboard.keycode == ALLEGRO_KEY_S) joystick_down(player1->joystick);            
         else if (event.keyboard.keycode == ALLEGRO_KEY_X) joystick_push(player1->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_C) joystick_kick(player1->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_Z) joystick_def(player1->joystick);  
         else if (event.keyboard.keycode == ALLEGRO_KEY_LEFT) joystick_left(player2->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) joystick_right(player2->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_UP) joystick_up(player2->joystick);

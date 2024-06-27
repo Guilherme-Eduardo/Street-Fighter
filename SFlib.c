@@ -16,6 +16,8 @@
 #define DOWN 3
 #define PUSH 4
 #define KICK 5
+#define DEF 6
+#define DOWN_DEF 7
 
 /* Funcao responsavel pela criacao do personagem e com as suas caracteristicas */
 struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int yS, unsigned int xD,
@@ -212,7 +214,17 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 	else if (trajectory == KICK && element->jump == 0 && !element->kick) {	    //verifica a movimentação do chute		
         element->kick = 1;		
         element->frame = 1;		
-	}	
+    }
+    else if (trajectory == DEF) {	    //verifica a movimentação do chute		
+        element->currentFrame = element->currentFrame * 11;
+        element->maxFrame = 1;	
+        element->frame = 0;	
+	}
+    else if (trajectory == DOWN_DEF) {	    //verifica a movimentação do chute		
+        element->currentFrame = element->currentFrame * 9;
+        element->maxFrame = 1;	
+        element->frame = 0;	
+	}
 }
 
 /* Funcao principal por atualizar o posicionamento de cada personagem e selecionar*/
@@ -245,6 +257,12 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
+    if (player1->joystick->def && player1->jump == 0 && player1->joystick->down == 0) {
+        character_move (player1, 1, 6, X_SCREEN, Y_SCREEN);
+    }
+    if (player1->joystick->down && player1->joystick->def) {
+        character_move (player1, 1, 7, X_SCREEN, Y_SCREEN);
+    }
     if (player2->joystick->left && !player2->joystick->down && !player2->joystick->right && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 0, X_SCREEN, Y_SCREEN);
         if (collision (player1, player2)) character_move (player2, -1, 0, X_SCREEN, Y_SCREEN);
@@ -267,7 +285,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;       
     }
-  
+
     return 0;
 }
 
@@ -336,9 +354,6 @@ void game_paused (ALLEGRO_FONT *font) {
         al_draw_text(font, al_map_rgb(0, 0, 0), 350, 330, 0, "PAUSE");
         al_draw_text(font, al_map_rgb(255, 255, 255), 350, 325, 0, "PAUSE");
 
-
-
-
         al_draw_text(font, al_map_rgb(0, 0, 0), 100, 200, 0, "Player 1:");
         al_draw_text(font, al_map_rgb(255, 255, 255), 100, 195, 0, "player 1");
 
@@ -347,8 +362,6 @@ void game_paused (ALLEGRO_FONT *font) {
 
         al_draw_text(font, al_map_rgb(0, 0, 0), 90, 295, 0, "Attack: X - C");
         al_draw_text(font, al_map_rgb(255, 255, 255), 90, 290, 0, "Attack: X - C");
-
-
 
         al_draw_text(font, al_map_rgb(0, 0, 0), 600, 200, 0, "Player 2:");
         al_draw_text(font, al_map_rgb(255, 255, 255), 600, 195, 0, "player 2");
@@ -440,14 +453,14 @@ void check_winner (struct character_t *player1, struct character_t *player2) {
 
 /* Remove os pontos de vida do jogador dependendo da variavel 'jogador' */
 void remove_life (struct character_t *player1, struct character_t *player2, int jogador) {
-	if (jogador == 1 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0) {
+	if (jogador == 1 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0 && player1->joystick->def == 0) {
         player1->life -= 5;
         player1->currentFrame = player1->currentFrame * 10;
         player1->maxFrame = 1;
         //player1->frame = 0;
 
     }
-	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0) {
+	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0 && player2->joystick->def == 0) {
         player2->life -= 5;
         player2->currentFrame = player2->currentFrame * 10;
         player2->maxFrame = 1;

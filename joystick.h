@@ -8,6 +8,7 @@ struct joystick_t {
     unsigned char down;
     unsigned char push;
     unsigned char kick;
+    unsigned char def;
 };
 
 /* Cria a estrutura responsavel por receber os comandos do personagem */
@@ -27,6 +28,8 @@ void joystick_down (struct joystick_t *element);
 void joystick_push (struct joystick_t *element);
 
 void joystick_kick (struct joystick_t *element);
+
+void joystick_def (struct joystick_t *element);
 
 #endif
 

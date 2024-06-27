@@ -11,6 +11,7 @@ struct joystick_t *joystick_create () {
     element->down = 0;
     element->push = 0;
     element->kick = 0;
+    element->def = 0;
     return element;
 }
 
@@ -28,4 +29,6 @@ void joystick_down (struct joystick_t *element){ element->down = element->down ^
 void joystick_push (struct joystick_t *element){ element->push = element->push ^ 1;}         //Implementação da função "joystick_push"; muda o estado do botão (!)
 
 void joystick_kick (struct joystick_t *element){ element->kick = element->kick ^ 1;}         //Implementação da função "joystick_kick"; muda o estado do botão (!)
+
+void joystick_def (struct joystick_t *element){ element->def = element->def ^ 1;}         //Implementação da função "joystick_def"; muda o estado do botão (!)
 
