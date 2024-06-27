@@ -18,6 +18,7 @@
 #define KICK 5
 #define DEF 6
 #define DOWN_DEF 7
+#define DOWN_ATK 8
 
 /* Funcao responsavel pela criacao do personagem e com as suas caracteristicas */
 struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, unsigned int yS, unsigned int xD,
@@ -173,8 +174,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 			element->x_display = element->x_display - steps*STEP;  				//Verifica se a movimentação para a esquerda é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
-				element->maxFrame = 5;		
-                
+				element->maxFrame = 5;                
 			}			
 		}
 	}
@@ -183,8 +183,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 			element->x_display = element->x_display + steps * STEP;             //Verifica se a movimentação para a direita é desejada e possível; se sim, efetiva a mesma
 			if (steps > 0 && element->jump == 0) {
 				element->currentFrame = element->currentFrame * 3;
-				element->maxFrame = 5;
-                
+				element->maxFrame = 5;                
 			}			
 		}
 	}	
@@ -208,8 +207,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         if (element->jump == 0 && !element->push) {
             element->push = 1;
             element->frame = 0;
-        }           
-					
+        }					
 	}	
 	else if (trajectory == KICK && element->jump == 0 && !element->kick) {	    //verifica a movimentação do chute		
         element->kick = 1;		
@@ -221,9 +219,16 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         element->frame = 0;	
 	}
     else if (trajectory == DOWN_DEF) {	    //verifica a movimentação do chute		
-        element->currentFrame = element->currentFrame * 9;
+        element->currentFrame = 80;
+        element->currentFrame = element->currentFrame * 12;
         element->maxFrame = 1;	
         element->frame = 0;	
+	}
+    else if (trajectory == DOWN_ATK) {	    //verifica a movimentação do chute		
+        element->currentFrame = 80;
+        element->currentFrame = element->currentFrame * 9;
+        element->maxFrame = 3;	
+        element->frame = 1;        
 	}
 }
 
@@ -246,7 +251,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player1->joystick->up) {
         character_jump (player1);		
     }
-    if (player1->joystick->down) {
+    if (player1->joystick->down && player1->joystick->push == 0) {
         character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);        
     }
     if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
@@ -262,6 +267,10 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     }
     if (player1->joystick->down && player1->joystick->def) {
         character_move (player1, 1, 7, X_SCREEN, Y_SCREEN);
+    }
+    if (player1->joystick->down && player1->joystick->push) {
+        character_move (player1, 1, 8, X_SCREEN, Y_SCREEN);
+        if (collision_hit(player1, player2)) return 2;        
     }
     if (player2->joystick->left && !player2->joystick->down && !player2->joystick->right && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 0, X_SCREEN, Y_SCREEN);
@@ -469,8 +478,8 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
 }
 
 /* Imprime o cenario / background */
-void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
-	al_clear_to_color(al_map_rgb(0,0,0));
+void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene, ALLEGRO_BITMAP *scene2, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
+	al_clear_to_color(al_map_rgb(0,0,0));    
 	al_draw_bitmap(scene, 0, 0, 0);
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
 
@@ -505,8 +514,11 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	if (player1->rounds_won + player2->rounds_won == 0) {
 		al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
 	}
-	else if (player1->rounds_won + player2->rounds_won == 1)
+	else if (player1->rounds_won + player2->rounds_won == 1) {
 		al_draw_scaled_bitmap (rounds[1],0,0,372,118,350,100,100,50,0);
+        al_draw_bitmap (scene2, 0,0,0);
+
+    }
 
 	else if (player1->rounds_won + player2->rounds_won == 2)
 		al_draw_scaled_bitmap (rounds[2],0,0,372,118,350,100,100,50,0);	

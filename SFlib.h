@@ -82,7 +82,7 @@ void check_winner (struct character_t *player1, struct character_t *player2);
 void remove_life (struct character_t *player1, struct character_t *player2, int jogador);
 
 /* imprime o cenario */
-void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) ;
+void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene,ALLEGRO_BITMAP *scene2, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) ;
 
 /* imprime o timer da rodada (90 segundos)*/
 void print_time (ALLEGRO_FONT*font, int *num, int *fps);

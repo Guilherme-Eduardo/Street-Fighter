@@ -44,6 +44,7 @@ int main () {
     ALLEGRO_BITMAP * ryu = al_load_bitmap ("./images/Ryu.png");
 
     ALLEGRO_BITMAP * scene = al_load_bitmap("./images/cenario.jpg");
+    ALLEGRO_BITMAP * scene2 = al_load_bitmap("./images/cenario2.png");
     ALLEGRO_BITMAP * logo = al_load_bitmap("./images/StreetFighterArcTitle2.png");
     ALLEGRO_BITMAP * menuBitmap = al_load_bitmap("./images/menuNovo.jpg");
 	ALLEGRO_BITMAP * rounds[ROUNDS];
@@ -87,7 +88,7 @@ while (1) {
     if (event.type == ALLEGRO_EVENT_TIMER) {
         fps++;                                                                                      // Var responsavel por contar os frames por segundos (0 até 30)
         hp = update_position(player1, player2);                                                     // Atualiza a movimentacao dos personagens
-        print_scene(player1, player2, scene, font, rounds);                                         //Remove vida caso um ataque tenha acertado o oponente
+        print_scene(player1, player2, scene, scene2,font, rounds);                                         //Remove vida caso um ataque tenha acertado o oponente
         remove_life(player1, player2, hp);
         print_character(player1);                                                                   //Imprime os personagens
         print_character(player2);
