@@ -43,7 +43,7 @@ struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, uns
     player->kick = 0; 
     player->push = 0;   
     player->frame = 0.f;
-    player->stamina = 100;
+    player->stamina = 0.f;
     player->joystick = joystick_create();
     player->direction = direction;
     return player;
@@ -134,6 +134,17 @@ void default_position (struct character_t *player1, struct character_t *player2)
         player1->x_display -= 5;
 }
 
+/*Stamina dos jogadores*/
+int check_stamina (struct character_t *player) {
+    if (player->stamina <= 15) return 0;
+    else return 1;
+}
+
+void increases_stamina (struct character_t *player) {
+    if (!player) return;
+    if (player->stamina < 100) player->stamina += 0.3;
+}
+
 /* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
 void apply_gravity (struct character_t *player) {
     if (player->jump) {
@@ -162,13 +173,16 @@ void update_position_jump (struct character_t *player) {
 /* Funcao responsavel por implementar o pulo do personagem*/
 void character_jump (struct character_t *player) {
     if (!player->jump) {
-        player->vel_y = JUMP_STRENGTH; // Vel_y recebe a altura do salto 
+        player->vel_y = JUMP_STRENGTH;                                                                      // Vel_y recebe a altura do salto 
         player->jump = 1;
     }
 }
 
+/* Funcao que verifica qual tecla foi pressionado para alterar o valor da sprite do personagem */
 void character_move (struct character_t *element, char steps, unsigned char trajectory, 
                     unsigned short max_x, unsigned short max_y) {
+    
+    if (!check_stamina(element)) return;    
 
 	if (trajectory == LEFT){ 
 		if ((element->x_display - steps * STEP) + element->side / 2 >= 0) {
@@ -208,30 +222,32 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         if (element->jump == 0 && !element->push) {
             element->push = 1;
             element->frame = 0;
+            element->stamina -= 10;
         }					
 	}	
 	else if (trajectory == KICK && element->jump == 0 && !element->kick) {	    //verifica a movimentação do chute		
         element->kick = 1;		
-        element->frame = 1;		
+        element->frame = 1;
+        element->stamina -= 10;
     }
-    else if (trajectory == DEF) {	    //verifica a movimentação do chute		
+    else if (trajectory == DEF) {	                                            //verifica a movimentação da defesa	
         element->currentFrame = element->currentFrame * 11;
         element->maxFrame = 1;	
         element->frame = 0;	
 	}
-    else if (trajectory == DOWN_DEF) {	    //verifica a movimentação do chute		
+    else if (trajectory == DOWN_DEF) {	                                        //verifica a movimentação de defesa agachado		
         element->currentFrame = 80;
         element->currentFrame = element->currentFrame * 12;
         element->maxFrame = 1;	
         element->frame = 0;	
 	}
-    else if (trajectory == DOWN_ATK) {	    //verifica a movimentação do chute		
+    else if (trajectory == DOWN_ATK) {	                                        //verifica a movimentação do soco agachado		
         element->currentFrame = 80;
         element->currentFrame = element->currentFrame * 9;
         element->maxFrame = 3;	
-        element->frame = 1;        
+        element->frame = 1;
+        element->stamina -= 10;    
 	}
-    
 }
 
 /* Funcao principal por atualizar o posicionamento de cada personagem e selecionar*/
@@ -306,6 +322,8 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player2, 1, 8, X_SCREEN, Y_SCREEN);
         if (collision_hit(player2, player2)) return 2;        
     }
+    increases_stamina (player1);
+    increases_stamina (player2);
 
     return 0;
 }
@@ -517,7 +535,7 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_draw_filled_rectangle (25, 75, 200 + player1->stamina, 85, red);
 
     al_draw_filled_rectangle (495, 70, 775, 90, al_map_rgb(255, 218, 185));
-	al_draw_filled_rectangle (500, 75, 670 + player1->stamina, 85, red);
+	al_draw_filled_rectangle (500, 75, 670 + player2->stamina, 85, red);
 
     al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
 	al_draw_text(font, al_map_rgb(0,0,0), 720, 20, 0, "player2");

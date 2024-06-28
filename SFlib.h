@@ -31,7 +31,7 @@ struct character_t {
     int push;	
     float frame;
     int direction;
-    int stamina;
+    float stamina;
     struct joystick_t *joystick;
     ALLEGRO_BITMAP *fighter;
 };
