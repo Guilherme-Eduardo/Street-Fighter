@@ -43,6 +43,7 @@ struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, uns
     player->kick = 0; 
     player->push = 0;   
     player->frame = 0.f;
+    player->stamina = 100;
     player->joystick = joystick_create();
     player->direction = direction;
     return player;
@@ -230,6 +231,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         element->maxFrame = 3;	
         element->frame = 1;        
 	}
+    
 }
 
 /* Funcao principal por atualizar o posicionamento de cada personagem e selecionar*/
@@ -251,7 +253,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player1->joystick->up) {
         character_jump (player1);		
     }
-    if (player1->joystick->down && player1->joystick->push == 0) {
+    if (player1->joystick->down && player1->push == 0 && player1->kick == 0) {
         character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);        
     }
     if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
@@ -262,7 +264,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
-    if (player1->joystick->def && player1->jump == 0 && player1->joystick->down == 0) {
+    if (player1->joystick->def && player1->jump == 0 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0) {
         character_move (player1, 1, 6, X_SCREEN, Y_SCREEN);
     }
     if (player1->joystick->down && player1->joystick->def) {
@@ -480,7 +482,21 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
 /* Imprime o cenario / background */
 void print_scene (struct character_t *player1, struct character_t *player2, ALLEGRO_BITMAP *scene, ALLEGRO_BITMAP *scene2, ALLEGRO_FONT* font, ALLEGRO_BITMAP * rounds[]) {
 	al_clear_to_color(al_map_rgb(0,0,0));    
-	al_draw_bitmap(scene, 0, 0, 0);
+
+	if (player1->rounds_won + player2->rounds_won == 0) {
+		al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
+	    al_draw_bitmap(scene, 0, 0, 0);
+	}
+	else if (player1->rounds_won + player2->rounds_won == 1) {
+		al_draw_scaled_bitmap (rounds[1],0,0,372,118,350,100,100,50,0);
+        al_draw_bitmap (scene2, 0,0,0);
+    }
+
+	else if (player1->rounds_won + player2->rounds_won == 2) {
+		al_draw_scaled_bitmap (rounds[2],0,0,372,118,350,100,100,50,0);	
+        al_draw_bitmap(scene, 0, 0, 0);
+    }
+
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
 
     /*Imprime os retangulos de HP*/
@@ -489,20 +505,25 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_draw_filled_rectangle (425, 5, 795, 65, al_map_rgb(255, 218, 185));
 	al_draw_filled_rectangle (430, 10, 430 + player2->life, 60, red);
 
+    /*Imprime stamina*/
+    al_draw_filled_rectangle (20, 70, 305, 90, al_map_rgb(255, 218, 185));
+	al_draw_filled_rectangle (25, 75, 200 + player1->stamina, 85, red);
+
+    al_draw_filled_rectangle (495, 70, 775, 90, al_map_rgb(255, 218, 185));
+	al_draw_filled_rectangle (500, 75, 670 + player1->stamina, 85, red);
+
     al_draw_text(font, al_map_rgb(0,0,0), 15, 20, 0, "player1");
 	al_draw_text(font, al_map_rgb(0,0,0), 720, 20, 0, "player2");
 
-    al_draw_text(font, al_map_rgb(0,0,0), 600, 85, 0, "Press P for commands");
-    al_draw_text(font, al_map_rgb(255,255,255), 600, 80, 0, "Press P for commands");
+    al_draw_text(font, al_map_rgb(0,0,0), 600, 160, 0, "Press P for commands");
+    al_draw_text(font, al_map_rgb(255,255,255), 600, 155, 0, "Press P for commands");
 
-	//al_draw_text(font, al_map_rgb(0,0,0), 50, 600, 0, "Press P for commands");
-
-    /*Imprime o simbolo para identificar a quantidade de vitoria de round do player*/
+	/*Imprime o simbolo para identificar a quantidade de vitoria de round do player*/
 	al_draw_filled_circle(340, 80, 10, al_map_rgb(0, 0, 0));
 	al_draw_filled_circle(360, 80, 10, al_map_rgb(0, 0, 0));
 
 	al_draw_filled_circle(440, 80, 10, al_map_rgb(0, 0, 0));
-	al_draw_filled_circle(460, 80, 10, al_map_rgb(0, 0, 0));	
+	al_draw_filled_circle(460, 80, 10, al_map_rgb(0, 0, 0));
 
 	if (player1->rounds_won == 1) {
 		al_draw_filled_circle(340, 80, 10, al_map_rgb(255, 255, 0));
@@ -510,18 +531,6 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	if (player2->rounds_won == 1) {
 		al_draw_filled_circle(440, 80, 10, al_map_rgb(255, 255, 0));
 	}
-
-	if (player1->rounds_won + player2->rounds_won == 0) {
-		al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
-	}
-	else if (player1->rounds_won + player2->rounds_won == 1) {
-		al_draw_scaled_bitmap (rounds[1],0,0,372,118,350,100,100,50,0);
-        al_draw_bitmap (scene2, 0,0,0);
-
-    }
-
-	else if (player1->rounds_won + player2->rounds_won == 2)
-		al_draw_scaled_bitmap (rounds[2],0,0,372,118,350,100,100,50,0);	
 }
 
 /* Imprime o cronometro da rodada */
