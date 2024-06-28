@@ -43,7 +43,7 @@ struct character_t* create_character (ALLEGRO_BITMAP *nome, unsigned int xS, uns
     player->kick = 0; 
     player->push = 0;   
     player->frame = 0.f;
-    player->stamina = 0.f;
+    player->stamina = 100.0f;
     player->joystick = joystick_create();
     player->direction = direction;
     return player;
@@ -71,8 +71,7 @@ int collision (struct character_t *p1, struct character_t *p2) {
 /* Verifica se houve colisao entre os personagem quando ocorre um ataque */
 int collision_hit (struct character_t *p1, struct character_t *p2) {
 	if (!p1 || !p2) return 0;
-	if (p1->x_display + p1->side > p2->x_display && 
-        p1->x_display < p2->x_display +  p2->side) 
+	if (p1->x_display + p1->side > p2->x_display &&  p1->x_display < p2->x_display +  p2->side) 
         return 1;	
 	else return 0;
 }
@@ -130,7 +129,7 @@ void default_position (struct character_t *player1, struct character_t *player2)
     player2->currentFrame = 80;
     player2->y_display = 420;
      
-     if (collision(player1, player2))
+    if (collision(player1, player2))
         player1->x_display -= 5;
 }
 
@@ -140,9 +139,10 @@ int check_stamina (struct character_t *player) {
     else return 1;
 }
 
+/* Incrementa os valores de stamina*/
 void increases_stamina (struct character_t *player) {
     if (!player) return;
-    if (player->stamina < 100) player->stamina += 0.3;
+    if (player->stamina < 100) player->stamina += 0.5;
 }
 
 /* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
@@ -246,7 +246,7 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         element->currentFrame = element->currentFrame * 9;
         element->maxFrame = 3;	
         element->frame = 1;
-        element->stamina -= 10;    
+        element->stamina -= 3;    
 	}
 }
 
@@ -272,11 +272,11 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player1->joystick->down && player1->push == 0 && player1->kick == 0) {
         character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);        
     }
-    if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right) {
+    if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right && player1->joystick->def == 0) {
         character_move (player1, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 2;        
     }
-    if (player1->joystick->kick && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right && !player1->joystick->push) {
+    if (player1->joystick->kick && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right && !player1->joystick->push && player1->joystick->def == 0) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
@@ -304,11 +304,11 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player2->joystick->down && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);        
     }
-    if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
+    if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right && player2->joystick->def == 0) {
         character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;        
     }
-    if (player2->joystick->kick && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right && !player2->joystick->push) {
+    if (player2->joystick->kick && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right && !player2->joystick->push && player2->joystick->def == 0) {
         character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;       
     }
@@ -320,7 +320,7 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     }
     if (player2->joystick->down && player2->joystick->push) {
         character_move (player2, 1, 8, X_SCREEN, Y_SCREEN);
-        if (collision_hit(player2, player2)) return 2;        
+        if (collision_hit(player1, player2)) return 1;        
     }
     increases_stamina (player1);
     increases_stamina (player2);
@@ -351,7 +351,8 @@ char choose_character (ALLEGRO_FONT* font, ALLEGRO_DISPLAY *display) {
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
 	ALLEGRO_EVENT event;
     al_register_event_source (event_queue, al_get_keyboard_event_source());
-     al_register_event_source(event_queue, al_get_display_event_source(display));
+    al_register_event_source(event_queue, al_get_display_event_source(display));
+    
     do {        
         al_wait_for_event (event_queue, &event);
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
@@ -476,7 +477,12 @@ void print_winner (ALLEGRO_FONT *font, struct character_t *player1, struct chara
 
 /* Verifica se o round acabou por tempo ou por quantidade de vida/hp */
 int end_round (struct character_t *player1, struct character_t *player2, int *timming) {
-    if (player1->life <= 0 || player2->life <= 0 || *timming <= 0) return 1;
+    if (player1->life <= 0 || player2->life <= 0 || *timming <= 0) {
+        /*default_joystick (player1);
+        default_joystick (player2);*/
+        return 1;
+    } 
+        
 	else return 0;
 }
 
@@ -495,14 +501,21 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
 	if (jogador == 1){
         if ((player1->joystick->down == 0 && player1->joystick->def == 0) || (player1->joystick->down == 0 && player1->joystick->def == 1 && player2->joystick->push == 1 && player2->joystick->down == 1)) {
             player1->life -= 5;
+            player1->currentFrame = 80;
             player1->currentFrame = player1->currentFrame * 10;
             player1->maxFrame = 1;
+            player1->frame = 0;
+
         }
     }
-	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->def == 0) {
-        player2->life -= 5;
-        player2->currentFrame = player2->currentFrame * 10;
-        player2->maxFrame = 1;
+	if (jogador == 2){
+        if ((player2->joystick->down == 0 && player2->joystick->def == 0) || (player2->joystick->down == 0 && player2->joystick->def == 1 && player1->joystick->push == 1 && player1->joystick->down == 1)) {
+            player2->life -= 5;
+            player2->currentFrame = 80;
+            player2->currentFrame = player2->currentFrame * 10;
+            player2->maxFrame = 1;
+            player2->frame = 0;
+        }
     }
 }
 
