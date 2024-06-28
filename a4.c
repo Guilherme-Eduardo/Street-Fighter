@@ -112,7 +112,8 @@ while (1) {
         else if (event.keyboard.keycode == ALLEGRO_KEY_UP) joystick_up(player2->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN) joystick_down(player2->joystick);
         else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_DELETE) joystick_push(player2->joystick);
-        else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0) joystick_kick(player2->joystick);            
+        else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_0) joystick_kick(player2->joystick);
+        else if (event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER) joystick_def(player2->joystick);
     }
 
     /* Verifica se a janela foi fechada*/

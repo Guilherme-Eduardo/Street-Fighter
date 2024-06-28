@@ -492,12 +492,14 @@ void check_winner (struct character_t *player1, struct character_t *player2) {
 
 /* Remove os pontos de vida do jogador dependendo da variavel 'jogador' */
 void remove_life (struct character_t *player1, struct character_t *player2, int jogador) {
-	if (jogador == 1 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0 && player1->joystick->def == 0) {
-        player1->life -= 5;
-        player1->currentFrame = player1->currentFrame * 10;
-        player1->maxFrame = 1;
+	if (jogador == 1){
+        if ((player1->joystick->down == 0 && player1->joystick->def == 0) || (player1->joystick->down == 0 && player1->joystick->def == 1 && player2->joystick->push == 1 && player2->joystick->down == 1)) {
+            player1->life -= 5;
+            player1->currentFrame = player1->currentFrame * 10;
+            player1->maxFrame = 1;
+        }
     }
-	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0 && player2->joystick->def == 0) {
+	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->def == 0) {
         player2->life -= 5;
         player2->currentFrame = player2->currentFrame * 10;
         player2->maxFrame = 1;
