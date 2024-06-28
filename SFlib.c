@@ -285,16 +285,26 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player2->joystick->up) {
         character_jump (player2);
     }
-    if (player2->joystick->down) {
+    if (player2->joystick->down && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);        
     }
     if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
         character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;        
     }
-    if (player2->joystick->kick && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right) {
+    if (player2->joystick->kick && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right && !player2->joystick->push) {
         character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;       
+    }
+    if (player2->joystick->def && player2->jump == 0 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0) {
+        character_move (player2, 1, 6, X_SCREEN, Y_SCREEN);
+    }
+    if (player2->joystick->down && player2->joystick->def) {
+        character_move (player2, 1, 7, X_SCREEN, Y_SCREEN);
+    }
+    if (player2->joystick->down && player2->joystick->push) {
+        character_move (player2, 1, 8, X_SCREEN, Y_SCREEN);
+        if (collision_hit(player2, player2)) return 2;        
     }
 
     return 0;
@@ -468,14 +478,11 @@ void remove_life (struct character_t *player1, struct character_t *player2, int 
         player1->life -= 5;
         player1->currentFrame = player1->currentFrame * 10;
         player1->maxFrame = 1;
-        //player1->frame = 0;
-
     }
 	else if (jogador == 2 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0 && player2->joystick->def == 0) {
         player2->life -= 5;
         player2->currentFrame = player2->currentFrame * 10;
         player2->maxFrame = 1;
-        //player2->frame = 0;
     }
 }
 
