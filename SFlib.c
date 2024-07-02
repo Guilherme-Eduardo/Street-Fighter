@@ -135,14 +135,14 @@ void default_position (struct character_t *player1, struct character_t *player2)
 
 /*Stamina dos jogadores*/
 int check_stamina (struct character_t *player) {
-    if (player->stamina <= 15) return 0;
+    if (player->stamina <= 20) return 0;
     else return 1;
 }
 
 /* Incrementa os valores de stamina*/
 void increases_stamina (struct character_t *player) {
     if (!player) return;
-    if (player->stamina < 100) player->stamina += 0.5;
+    if (player->stamina < 100) player->stamina += 0.4;
 }
 
 /* Função responsavel por aplicar o efeito de gravidade caso o personagem esteja pulando */
@@ -182,8 +182,6 @@ void character_jump (struct character_t *player) {
 void character_move (struct character_t *element, char steps, unsigned char trajectory, 
                     unsigned short max_x, unsigned short max_y) {
     
-    if (!check_stamina(element)) return;    
-
 	if (trajectory == LEFT){ 
 		if ((element->x_display - steps * STEP) + element->side / 2 >= 0) {
 			element->x_display = element->x_display - steps*STEP;  				//Verifica se a movimentação para a esquerda é desejada e possível; se sim, efetiva a mesma
@@ -218,17 +216,19 @@ void character_move (struct character_t *element, char steps, unsigned char traj
 			}			
 		}			
 	}	
-	else if (trajectory == PUSH){                                                // Verifica se a movimentação do soco
+	else if (trajectory == PUSH){        
+        if (!check_stamina(element)) return;                                            // Verifica se a movimentação do soco
         if (element->jump == 0 && !element->push) {
             element->push = 1;
             element->frame = 0;
-            element->stamina -= 10;
+            element->stamina -= 12;
         }					
 	}	
 	else if (trajectory == KICK && element->jump == 0 && !element->kick) {	    //verifica a movimentação do chute		
+        if (!check_stamina(element)) return;    
         element->kick = 1;		
         element->frame = 1;
-        element->stamina -= 10;
+        element->stamina -= 12;
     }
     else if (trajectory == DEF) {	                                            //verifica a movimentação da defesa	
         element->currentFrame = element->currentFrame * 11;
@@ -242,9 +242,10 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         element->frame = 0;	
 	}
     else if (trajectory == DOWN_ATK) {	                                        //verifica a movimentação do soco agachado		
+        if (!check_stamina(element)) return;    
         element->currentFrame = 80;
         element->currentFrame = element->currentFrame * 9;
-        element->maxFrame = 3;	
+        element->maxFrame = 4;	
         element->frame = 1;
         element->stamina -= 3;    
 	}
