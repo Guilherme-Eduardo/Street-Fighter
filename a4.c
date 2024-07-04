@@ -22,11 +22,21 @@
 int main () {
 
     al_init();                                                                                      //Faz a preparação de requisitos da biblioteca Allegro
+    if (!al_init()) {
+        fprintf(stderr, "Falha ao inicializar o Allegro.\n");
+        return -1;
+    }
+
     al_init_font_addon();
     al_init_ttf_addon();
     al_init_image_addon();
-    al_install_keyboard();                                                                          //Habilita a entrada via teclado (eventos de teclado), no programa
 	al_init_primitives_addon();	                                                                    //Faz a inicialização dos addons das imagens básicas
+    al_install_keyboard();                                                                          //Habilita a entrada via teclado (eventos de teclado), no programa
+    // Inicializa addons do Allegro
+    if (!al_install_keyboard()) {
+        fprintf(stderr, "Falha ao inicializar o teclado.\n");
+        return -1;
+    }
 
 	char fighter;	
 	int hp, game_on = 0, timming = CLOCK, fps = 0;
@@ -36,6 +46,11 @@ int main () {
 
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0);                                             //Cria o relógio do jogo; isso indica quantas atualizações serão realizadas por segundo (30, neste caso)
     ALLEGRO_DISPLAY *display = al_create_display(X_SCREEN,Y_SCREEN);                                //Cria uma janela para o programa, define a largura (x) e a altura (y) da tela em píxeis (320x320, neste caso)
+    // Cria display    
+    if (!display) {
+        fprintf(stderr, "Falha ao criar o display.\n");
+        return -1;
+    }
     ALLEGRO_FONT* font = al_load_font("./font/Act_Of_Rejection.ttf", 20, 0);
     ALLEGRO_FONT* time = al_load_font("./font/DS-DIGIT.TTF", 45, 0);
 
@@ -56,6 +71,11 @@ int main () {
 
 	ALLEGRO_KEYBOARD_STATE keystate;
     ALLEGRO_EVENT_QUEUE * event_queue = al_create_event_queue();
+    if (!event_queue) {
+        fprintf(stderr, "Falha ao criar a fila de eventos.\n");
+        al_destroy_display(display);
+        return -1;
+    }
 
     al_register_event_source(event_queue, al_get_display_event_source(display));					//Indica que eventos de tela serão inseridos na nossa fila de eventos
     al_register_event_source(event_queue, al_get_timer_event_source(timer));						//Indica que eventos de relógio serão inseridos na nossa fila de eventos
