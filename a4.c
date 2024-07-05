@@ -38,15 +38,15 @@ int main () {
         return -1;
     }
 
-	char fighter;	
-	int hp, game_on = 0, timming = CLOCK, fps = 0;
+	char fighter = 0;	
+	int hp = 0, game_on = 0, timming = CLOCK, fps = 0;
 		
-	struct character_t* player1;
-    struct character_t* player2;
+	struct character_t* player1 = NULL;
+    struct character_t* player2 = NULL;
 
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0);                                             //Cria o relógio do jogo; isso indica quantas atualizações serão realizadas por segundo (30, neste caso)
     ALLEGRO_DISPLAY *display = al_create_display(X_SCREEN,Y_SCREEN);                                //Cria uma janela para o programa, define a largura (x) e a altura (y) da tela em píxeis (320x320, neste caso)
-    // Cria display    
+    
     if (!display) {
         fprintf(stderr, "Falha ao criar o display.\n");
         return -1;
