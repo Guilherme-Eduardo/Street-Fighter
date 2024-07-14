@@ -135,7 +135,7 @@ void default_position (struct character_t *player1, struct character_t *player2)
 
 /*Stamina dos jogadores*/
 int check_stamina (struct character_t *player) {
-    if (player->stamina <= 20) return 0;
+    if (player->stamina <= 25) return 0;
     else return 1;
 }
 
@@ -242,12 +242,12 @@ void character_move (struct character_t *element, char steps, unsigned char traj
         element->frame = 0;	
 	}
     else if (trajectory == DOWN_ATK) {	                                        //verifica a movimentação do soco agachado		
-        if (!check_stamina(element)) return;    
+        if (!check_stamina(element)) return;        
         element->currentFrame = 80;
         element->currentFrame = element->currentFrame * 9;
         element->maxFrame = 4;	
         element->frame = 1;
-        element->stamina -= 3;    
+        element->stamina -= 3;
 	}
 }
 
@@ -270,10 +270,10 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player1->joystick->up) {
         character_jump (player1);		
     }
-    if (player1->joystick->down && player1->push == 0 && player1->kick == 0) {
+    if (player1->joystick->down && player1->push == 0 && player1->kick == 0 && player1->joystick->push == 0) {
         character_move (player1, 1, 3, X_SCREEN, Y_SCREEN);        
     }
-    if (player1->joystick->push && !player1->jump && !player1->joystick->down && !player1->joystick->left && !player1->joystick->right && player1->joystick->def == 0) {
+    if (player1->joystick->push && !player1->jump && player1->joystick->down == 0 && !player1->joystick->left && !player1->joystick->right && player1->joystick->def == 0) {
         character_move (player1, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 2;        
     }
@@ -281,13 +281,13 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player1, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
-    if (player1->joystick->def && player1->jump == 0 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0) {
+    if (player1->joystick->def && player1->jump == 0 && player1->joystick->down == 0 && player1->joystick->right == 0 && player1->joystick->left == 0 && player1->push == 0 && player1->kick == 0) {
         character_move (player1, 1, 6, X_SCREEN, Y_SCREEN);
     }
     if (player1->joystick->down && player1->joystick->def) {
         character_move (player1, 1, 7, X_SCREEN, Y_SCREEN);
     }
-    if (player1->joystick->down && player1->joystick->push) {
+    if (player1->joystick->down && player1->joystick->push && player1->push == 0) {
         character_move (player1, 1, 8, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 2;        
     }
@@ -302,10 +302,10 @@ int update_position (struct character_t *player1, struct character_t *player2) {
     if (player2->joystick->up) {
         character_jump (player2);
     }
-    if (player2->joystick->down && player2->push == 0 && player2->kick == 0) {
+    if (player2->joystick->down && player2->push == 0 && player2->kick == 0 && player2->joystick->push == 0) {
         character_move (player2, 1, 3, X_SCREEN, Y_SCREEN);        
     }
-    if (player2->joystick->push && !player2->jump && !player2->joystick->down && !player2->joystick->left && !player2->joystick->right && player2->joystick->def == 0) {
+    if (player2->joystick->push && !player2->jump && player2->joystick->down == 0 && !player2->joystick->left && !player2->joystick->right && player2->joystick->def == 0) {
         character_move (player2, 1, 4, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;        
     }
@@ -313,13 +313,13 @@ int update_position (struct character_t *player1, struct character_t *player2) {
         character_move (player2, 1, 5, X_SCREEN, Y_SCREEN);
         if (collision_hit (player1, player2)) return 1;       
     }
-    if (player2->joystick->def && player2->jump == 0 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0) {
+    if (player2->joystick->def && player2->jump == 0 && player2->joystick->down == 0 && player2->joystick->right == 0 && player2->joystick->left == 0 && player2->push == 0 && player2->kick == 0) {
         character_move (player2, 1, 6, X_SCREEN, Y_SCREEN);
     }
     if (player2->joystick->down && player2->joystick->def) {
         character_move (player2, 1, 7, X_SCREEN, Y_SCREEN);
     }
-    if (player2->joystick->down && player2->joystick->push) {
+    if (player2->joystick->down && player2->joystick->push && player2->push == 0) {
         character_move (player2, 1, 8, X_SCREEN, Y_SCREEN);
         if (collision_hit(player1, player2)) return 1;        
     }
