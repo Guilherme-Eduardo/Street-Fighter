@@ -113,6 +113,9 @@ void reset_character (struct character_t *player1, struct character_t *player2) 
 	player1->x_display = 200;
 	player2->x_display = 400;
 
+    player1->stamina = 100.0f;
+    player2->stamina = 100.0f;
+
     default_joystick (player1);
     default_joystick (player2);
 }
@@ -525,17 +528,17 @@ void print_scene (struct character_t *player1, struct character_t *player2, ALLE
 	al_clear_to_color(al_map_rgb(0,0,0));    
 
 	if (player1->rounds_won + player2->rounds_won == 0) {
-		al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
-	    al_draw_bitmap(scene, 0, 0, 0);
+		al_draw_scaled_bitmap (scene,0,0,800,600,0,0,800,600,0);	    
+        al_draw_scaled_bitmap (rounds[0],0,0,372,118,350,100,100,50,0);
 	}
 	else if (player1->rounds_won + player2->rounds_won == 1) {
+        al_draw_scaled_bitmap (scene2,0,0,1534,960,0,0,800,600,0);
 		al_draw_scaled_bitmap (rounds[1],0,0,372,118,350,100,100,50,0);
-        al_draw_bitmap (scene2, 0,0,0);
     }
 
 	else if (player1->rounds_won + player2->rounds_won == 2) {
+        al_draw_scaled_bitmap (scene,0,0,800,600,0,0,800,600,0);
 		al_draw_scaled_bitmap (rounds[2],0,0,372,118,350,100,100,50,0);	
-        al_draw_bitmap(scene, 0, 0, 0);
     }
 
 	ALLEGRO_COLOR red = al_map_rgb(255, 0, 0);
